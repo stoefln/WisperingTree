@@ -10,7 +10,8 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ProgressBar;
+
+import net.microtrash.wisperingtree.view.RangeSeekBar;
 
 import java.io.IOException;
 
@@ -27,9 +28,11 @@ public class RecordFragment extends Fragment {
     private static final String TAG = "RecordFragment";
     private View mRootView;
 
-    @InjectView(R.id.progressBar)
-    ProgressBar mAudioLevelBar;
+    /*@InjectView(R.id.progressBar)
+    ProgressBar mAudioLevelBar;*/
 
+    @InjectView(R.id.audioLevelBar)
+    RangeSeekBar mAudioLevelBar;
     /**
      * Returns a new instance of this fragment for the given section
      * number.
@@ -82,8 +85,8 @@ public class RecordFragment extends Fragment {
                     int amp = mRecorder.getMaxAmplitude();
                     //Log.v(TAG, "vol: " + amp + " max: " + MediaRecorder.getAudioSourceMax());
 
-                    mAudioLevelBar.setMax(30000);
-                    mAudioLevelBar.setProgress(amp);
+                   //mAudioLevelBar.getAbsoluteMaxValue(30000);
+                    mAudioLevelBar.setLevel((float) amp / (float) 20000);
                     observeAudio();
                 }
             }

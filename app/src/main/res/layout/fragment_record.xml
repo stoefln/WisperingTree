@@ -21,6 +21,11 @@
         android:background="#FF00FF"
         />
 
+    <net.microtrash.wisperingtree.view.RangeSeekBar
+        android:id="@+id/audioLevelBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
     <SeekBar
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
