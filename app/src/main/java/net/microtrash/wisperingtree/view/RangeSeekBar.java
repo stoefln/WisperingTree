@@ -100,6 +100,15 @@ public class RangeSeekBar<T extends Number> extends ImageView {
         invalidate();
     }
 
+    public double getNormalizedMinValue() {
+        return normalizedMinValue;
+    }
+
+    public double getNormalizedMaxValue() {
+        return normalizedMaxValue;
+    }
+
+
     public static final int DEFAULT_COLOR = Color.argb(0xFF, 0x33, 0xB5, 0xE5);
     /**
      * An invalid pointer id.
@@ -638,7 +647,7 @@ public class RangeSeekBar<T extends Number> extends ImageView {
      *
      * @param value The new normalized min value to set.
      */
-    private void setNormalizedMinValue(double value) {
+    public void setNormalizedMinValue(double value) {
         normalizedMinValue = Math.max(0d, Math.min(1d, Math.min(value, normalizedMaxValue)));
         invalidate();
     }
@@ -648,7 +657,7 @@ public class RangeSeekBar<T extends Number> extends ImageView {
      *
      * @param value The new normalized max value to set.
      */
-    private void setNormalizedMaxValue(double value) {
+    public void setNormalizedMaxValue(double value) {
         normalizedMaxValue = Math.max(0d, Math.min(1d, Math.max(value, normalizedMinValue)));
         invalidate();
     }

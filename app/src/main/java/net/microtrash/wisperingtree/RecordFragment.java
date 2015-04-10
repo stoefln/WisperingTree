@@ -33,6 +33,9 @@ public class RecordFragment extends Fragment {
 
     @InjectView(R.id.audioLevelBar)
     RangeSeekBar mAudioLevelBar;
+    private int mRecNum;
+    private boolean mSampling = false;
+
     /**
      * Returns a new instance of this fragment for the given section
      * number.
@@ -72,6 +75,8 @@ public class RecordFragment extends Fragment {
         mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
         mFileName += "/audiorecordtest.3gp";
 
+
+        mAudioLevelBar.setNormalizedMinValue(0.5);
         startRecording();
         observeAudio();
     }
@@ -85,13 +90,43 @@ public class RecordFragment extends Fragment {
                     int amp = mRecorder.getMaxAmplitude();
                     //Log.v(TAG, "vol: " + amp + " max: " + MediaRecorder.getAudioSourceMax());
 
-                   //mAudioLevelBar.getAbsoluteMaxValue(30000);
-                    mAudioLevelBar.setLevel((float) amp / (float) 20000);
+                    //mAudioLevelBar.getAbsoluteMaxValue(30000);
+                    float normalizedLevel = (float) amp / (float) 20000;
+                    if (!mSampling && normalizedLevel > mAudioLevelBar.getNormalizedMaxValue()) {
+
+                        startSampling();
+                    } else if (mSampling && normalizedLevel < mAudioLevelBar.getNormalizedMinValue()) {
+
+                        stopSampling();
+                    }
+                    mAudioLevelBar.setLevel(normalizedLevel);
                     observeAudio();
                 }
             }
-        }, 100);
+        }, 200);
 
+    }
+
+    private void startSampling() {
+        mRecorder.stop();
+        mRecorder.release();
+
+        mRecNum ++;
+        String filename = Environment.getExternalStorageDirectory().getAbsolutePath();
+        filename += "/audiorecordtest"+mRecNum%10+".3gp";
+        Log.v(TAG, "startSampling "+filename);
+        mRecorder.setOutputFile(mFileName);
+        mRecorder.start();
+        mSampling = true;
+    }
+
+    private void stopSampling() {
+        Log.v(TAG, "stopSampling");
+        mRecorder.stop();
+        mRecorder.release();
+        mRecorder.setOutputFile(mFileName);
+        mRecorder.start();
+        mSampling = false;
     }
 
 
