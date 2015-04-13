@@ -17,6 +17,7 @@ import java.io.IOException;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
+import butterknife.OnClick;
 
 
 public class RecordFragment extends Fragment {
@@ -33,8 +34,13 @@ public class RecordFragment extends Fragment {
 
     @InjectView(R.id.audioLevelBar)
     RangeSeekBar mAudioLevelBar;
+
+    @InjectView(R.id.recording_indicator)
+    View mRecordingIndicator;
+
     private int mRecNum;
-    private boolean mSampling = false;
+    private Long mLastTimeAboveMax = null;
+    private long mSampleStartTime;
 
     /**
      * Returns a new instance of this fragment for the given section
@@ -70,14 +76,14 @@ public class RecordFragment extends Fragment {
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mRecorder = new MediaRecorder();
 
-        mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
-        mFileName += "/audiorecordtest.3gp";
+
+        mEmptyFileName = "/dev/null";
 
 
         mAudioLevelBar.setNormalizedMinValue(0.5);
-        startRecording();
+        initRecorder(mEmptyFileName);
+        mRecorder.start();
         observeAudio();
     }
 
@@ -92,46 +98,69 @@ public class RecordFragment extends Fragment {
 
                     //mAudioLevelBar.getAbsoluteMaxValue(30000);
                     float normalizedLevel = (float) amp / (float) 20000;
-                    if (!mSampling && normalizedLevel > mAudioLevelBar.getNormalizedMaxValue()) {
+                    if (normalizedLevel > mAudioLevelBar.getNormalizedMaxValue()) {
+                        if (mLastTimeAboveMax == null) {
+                            startSampling();
+                        }
+                        mLastTimeAboveMax = System.currentTimeMillis();
 
-                        startSampling();
-                    } else if (mSampling && normalizedLevel < mAudioLevelBar.getNormalizedMinValue()) {
+                    } else if (mLastTimeAboveMax != null) {
+                        long timeDiff = System.currentTimeMillis() - mLastTimeAboveMax;
 
-                        stopSampling();
+                        if (timeDiff > 1000 && normalizedLevel < mAudioLevelBar.getNormalizedMinValue()) {
+                            stopSampling();
+                            mLastTimeAboveMax = null;
+                        }
                     }
                     mAudioLevelBar.setLevel(normalizedLevel);
                     observeAudio();
                 }
             }
-        }, 200);
+        }, 50);
 
     }
 
     private void startSampling() {
-        mRecorder.stop();
-        mRecorder.release();
-
-        mRecNum ++;
+        mSampleStartTime = System.currentTimeMillis();
+        if (mRecorder != null) {
+            mRecorder.stop();
+            mRecorder.release();
+            mRecorder = null;
+        }
+        mRecordingIndicator.setBackgroundColor(getResources().getColor(R.color.recording_red));
         String filename = Environment.getExternalStorageDirectory().getAbsolutePath();
-        filename += "/audiorecordtest"+mRecNum%10+".3gp";
-        Log.v(TAG, "startSampling "+filename);
-        mRecorder.setOutputFile(mFileName);
+        filename += "/audiorecordtest" + mRecNum % 10 + ".3gp";
+        initRecorder(filename);
+
+        Log.v(TAG, "startSampling " + filename);
         mRecorder.start();
-        mSampling = true;
+        mRecNum++;
     }
 
     private void stopSampling() {
-        Log.v(TAG, "stopSampling");
-        mRecorder.stop();
-        mRecorder.release();
-        mRecorder.setOutputFile(mFileName);
-        mRecorder.start();
-        mSampling = false;
+        Log.v(TAG, "StopSampling. Filelength: " + (float) (System.currentTimeMillis() - mSampleStartTime) / 1000f + " sec");
+        if (mRecorder != null && mLastTimeAboveMax != null) {
+            try {
+                mRecorder.stop();
+                mRecorder.release();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            mRecorder = null;
+
+            try {
+                initRecorder(mEmptyFileName);
+                mRecorder.start();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        mRecordingIndicator.setBackgroundColor(getResources().getColor(R.color.recording_green));
     }
 
 
     private static final String LOG_TAG = "AudioRecordTest";
-    private static String mFileName = null;
+    private static String mEmptyFileName = null;
 
     private MediaRecorder mRecorder = null;
 
@@ -140,11 +169,13 @@ public class RecordFragment extends Fragment {
 
     private MediaPlayer mPlayer = null;
 
-    private void onRecord(boolean start) {
-        if (start) {
-            startRecording();
+
+    @OnClick(R.id.btn_play)
+    void onPlayButtonClick() {
+        if (mLastTimeAboveMax != null) {
+            stopSampling();
         } else {
-            stopRecording();
+            startSampling();
         }
     }
 
@@ -159,7 +190,7 @@ public class RecordFragment extends Fragment {
     private void startPlaying() {
         mPlayer = new MediaPlayer();
         try {
-            mPlayer.setDataSource(mFileName);
+            mPlayer.setDataSource(mEmptyFileName);
             mPlayer.prepare();
             mPlayer.start();
         } catch (IOException e) {
@@ -172,16 +203,11 @@ public class RecordFragment extends Fragment {
         mPlayer = null;
     }
 
-    private void startRecording() {
-        initRecorder();
-
-        mRecorder.start();
-    }
-
-    private void initRecorder() {
+    private void initRecorder(String filename) {
+        mRecorder = new MediaRecorder();
         mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        mRecorder.setOutputFile(mFileName);
+        mRecorder.setOutputFile(filename);
         mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
 
         try {
