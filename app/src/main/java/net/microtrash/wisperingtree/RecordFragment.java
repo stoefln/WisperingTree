@@ -1,6 +1,7 @@
 package net.microtrash.wisperingtree;
 
 import android.app.Activity;
+import android.media.AudioFormat;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
@@ -11,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import net.microtrash.wisperingtree.util.Profiler;
 import net.microtrash.wisperingtree.view.RangeSeekBar;
 
 import java.io.IOException;
@@ -77,12 +79,8 @@ public class RecordFragment extends Fragment {
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-
-        mEmptyFileName = "/dev/null";
-
-
         mAudioLevelBar.setNormalizedMinValue(0.5);
-        initRecorder(mEmptyFileName);
+        initRecorder(getNextFilename());
         mRecorder.start();
         observeAudio();
     }
@@ -94,7 +92,7 @@ public class RecordFragment extends Fragment {
             public void run() {
                 if (mRecorder != null) {
                     int amp = mRecorder.getMaxAmplitude();
-                    //Log.v(TAG, "vol: " + amp + " max: " + MediaRecorder.getAudioSourceMax());
+                    Log.v(TAG, "vol: " + amp + " state: " + mRecorder.getState());
 
                     //mAudioLevelBar.getAbsoluteMaxValue(30000);
                     float normalizedLevel = (float) amp / (float) 20000;
@@ -122,18 +120,9 @@ public class RecordFragment extends Fragment {
 
     private void startSampling() {
         mSampleStartTime = System.currentTimeMillis();
-        if (mRecorder != null) {
-            mRecorder.stop();
-            mRecorder.release();
-            mRecorder = null;
-        }
+        Profiler.start("start Sampling");
+        mRecorder.setAddSamples(true);
         mRecordingIndicator.setBackgroundColor(getResources().getColor(R.color.recording_red));
-        String filename = Environment.getExternalStorageDirectory().getAbsolutePath();
-        filename += "/audiorecordtest" + mRecNum % 10 + ".3gp";
-        initRecorder(filename);
-
-        Log.v(TAG, "startSampling " + filename);
-        mRecorder.start();
         mRecNum++;
     }
 
@@ -146,10 +135,10 @@ public class RecordFragment extends Fragment {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            mRecorder = null;
 
             try {
-                initRecorder(mEmptyFileName);
+
+                initRecorder(getNextFilename());
                 mRecorder.start();
             } catch (Exception e) {
                 e.printStackTrace();
@@ -158,11 +147,17 @@ public class RecordFragment extends Fragment {
         mRecordingIndicator.setBackgroundColor(getResources().getColor(R.color.recording_green));
     }
 
+    private String getNextFilename() {
+        String nextfilename = Environment.getExternalStorageDirectory().getAbsolutePath();
+        nextfilename += "/audiorecordtest" + mRecNum % 10 + ".wav";
+        return nextfilename;
+    }
+
 
     private static final String LOG_TAG = "AudioRecordTest";
     private static String mEmptyFileName = null;
 
-    private MediaRecorder mRecorder = null;
+    private AudioRecorder mRecorder = null;
 
     @InjectView(R.id.btn_play)
     protected View mPlayButton = null;
@@ -203,18 +198,33 @@ public class RecordFragment extends Fragment {
         mPlayer = null;
     }
 
-    private void initRecorder(String filename) {
-        mRecorder = new MediaRecorder();
-        mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        mRecorder.setOutputFile(filename);
-        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+    private final static int[][] sampleRates =
+            {
+                    {44100, 22050, 11025, 8000},
+                    {22050, 11025, 8000, 44100},
+                    {11025, 8000, 22050, 44100},
+                    {8000, 11025, 22050, 44100}
+            };
 
-        try {
-            mRecorder.prepare();
-        } catch (IOException e) {
-            Log.e(LOG_TAG, "prepare() failed");
+    private void initRecorder(String filename) {
+        //mRecorder = new RehearsalAudioRecorder(true, MediaRecorder.AudioSource.MIC, 44100, AudioFormat.CHANNEL_CONFIGURATION_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        int i = 0;
+
+        do {
+            Log.v(TAG, "initializing with: " + sampleRates[0][i]);
+            mRecorder = new AudioRecorder(true, MediaRecorder.AudioSource.MIC, sampleRates[0][i], AudioFormat.CHANNEL_CONFIGURATION_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT);
         }
+        while ((++i < sampleRates.length) & !(mRecorder.getState() == AudioRecorder.State.INITIALIZING));
+
+        //mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        //mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        mRecorder.setOutputFile(filename);
+        //mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+
+
+        mRecorder.prepare();
+
     }
 
     private void stopRecording() {
