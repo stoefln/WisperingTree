@@ -41,8 +41,9 @@ public class RecordFragment extends Fragment {
     View mRecordingIndicator;
 
     private int mRecNum;
-    private Long mLastTimeAboveMax = null;
+    private Long mLastTimeAboveMin = null;
     private long mSampleStartTime;
+    private boolean mSampling = false;
 
     /**
      * Returns a new instance of this fragment for the given section
@@ -92,22 +93,26 @@ public class RecordFragment extends Fragment {
             public void run() {
                 if (mRecorder != null) {
                     int amp = mRecorder.getMaxAmplitude();
-                    Log.v(TAG, "vol: " + amp + " state: " + mRecorder.getState());
+                    //Log.v(TAG, "vol: " + amp + " state: " + mRecorder.getState());
 
                     //mAudioLevelBar.getAbsoluteMaxValue(30000);
-                    float normalizedLevel = (float) amp / (float) 20000;
-                    if (normalizedLevel > mAudioLevelBar.getNormalizedMaxValue()) {
-                        if (mLastTimeAboveMax == null) {
-                            startSampling();
-                        }
-                        mLastTimeAboveMax = System.currentTimeMillis();
+                    float normalizedLevel = (float) amp / (float) 15000;
 
-                    } else if (mLastTimeAboveMax != null) {
-                        long timeDiff = System.currentTimeMillis() - mLastTimeAboveMax;
-
+                    if (normalizedLevel > mAudioLevelBar.getNormalizedMaxValue() && !mSampling) {
+                        Log.v(TAG, "vol: " + amp + " normalized: " + normalizedLevel);
+                        startSampling();
+                        mSampling = true;
+                    }
+                    if (normalizedLevel > mAudioLevelBar.getNormalizedMinValue()) {
+                        mLastTimeAboveMin = System.currentTimeMillis();
+                    }
+                    if (mSampling && mLastTimeAboveMin != null) {
+                        long timeDiff = System.currentTimeMillis() - mLastTimeAboveMin;
+                        // if recording was started AND level has stayed below min level for at least a second -> stop
                         if (timeDiff > 1000 && normalizedLevel < mAudioLevelBar.getNormalizedMinValue()) {
                             stopSampling();
-                            mLastTimeAboveMax = null;
+                            mSampling = false;
+                            mLastTimeAboveMin = null;
                         }
                     }
                     mAudioLevelBar.setLevel(normalizedLevel);
@@ -123,12 +128,11 @@ public class RecordFragment extends Fragment {
         Profiler.start("start Sampling");
         mRecorder.setAddSamples(true);
         mRecordingIndicator.setBackgroundColor(getResources().getColor(R.color.recording_red));
-        mRecNum++;
     }
 
     private void stopSampling() {
-        Log.v(TAG, "StopSampling. Filelength: " + (float) (System.currentTimeMillis() - mSampleStartTime) / 1000f + " sec");
-        if (mRecorder != null && mLastTimeAboveMax != null) {
+        Log.v(TAG, "StopSampling. Filelength: " + (float) (System.currentTimeMillis() - mSampleStartTime) / 1000f + " sec. Filename: " + mRecorder.getOutputFile());
+        if (mRecorder != null && mLastTimeAboveMin != null) {
             try {
                 mRecorder.stop();
                 mRecorder.release();
@@ -150,6 +154,7 @@ public class RecordFragment extends Fragment {
     private String getNextFilename() {
         String nextfilename = Environment.getExternalStorageDirectory().getAbsolutePath();
         nextfilename += "/audiorecordtest" + mRecNum % 10 + ".wav";
+        mRecNum++;
         return nextfilename;
     }
 
@@ -167,7 +172,7 @@ public class RecordFragment extends Fragment {
 
     @OnClick(R.id.btn_play)
     void onPlayButtonClick() {
-        if (mLastTimeAboveMax != null) {
+        if (mLastTimeAboveMin != null) {
             stopSampling();
         } else {
             startSampling();

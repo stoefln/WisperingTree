@@ -11,6 +11,10 @@ import java.io.RandomAccessFile;
 
 public class AudioRecorder
 {
+	public String getOutputFile() {
+		return fPath;
+	}
+
 	/**
 	 * INITIALIZING : recorder is initializing;
 	 * READY : recorder has been initialized, recorder not yet started
@@ -510,5 +514,9 @@ public class AudioRecorder
 	private short getShort(byte argB1, byte argB2)
 	{
 		return (short)(argB1 | (argB2 << 8));
+	}
+
+	public interface AudioRecorderListener{
+
 	}
 }
