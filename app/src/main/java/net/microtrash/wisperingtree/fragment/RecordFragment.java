@@ -1,18 +1,19 @@
-package net.microtrash.wisperingtree;
+package net.microtrash.wisperingtree.fragment;
 
-import android.app.Activity;
 import android.media.AudioFormat;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import net.microtrash.wisperingtree.AudioRecorder;
+import net.microtrash.wisperingtree.R;
 import net.microtrash.wisperingtree.util.Profiler;
+import net.microtrash.wisperingtree.util.Utils;
 import net.microtrash.wisperingtree.view.RangeSeekBar;
 
 import java.io.IOException;
@@ -49,10 +50,9 @@ public class RecordFragment extends Fragment {
      * Returns a new instance of this fragment for the given section
      * number.
      */
-    public static RecordFragment newInstance(int sectionNumber) {
+    public static RecordFragment newInstance() {
         RecordFragment fragment = new RecordFragment();
         Bundle args = new Bundle();
-        args.putInt(ARG_SECTION_NUMBER, sectionNumber);
         fragment.setArguments(args);
         return fragment;
     }
@@ -68,13 +68,6 @@ public class RecordFragment extends Fragment {
         return mRootView;
     }
 
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        ((MainActivity) activity).onSectionAttached(
-                getArguments().getInt(ARG_SECTION_NUMBER));
-
-    }
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
@@ -152,8 +145,9 @@ public class RecordFragment extends Fragment {
     }
 
     private String getNextFilename() {
-        String nextfilename = Environment.getExternalStorageDirectory().getAbsolutePath();
-        nextfilename += "/audiorecordtest" + mRecNum % 10 + ".wav";
+        String dirPath = Utils.getAppRootDir();
+        Utils.mkDir(dirPath);
+        String nextfilename = dirPath + "/audiorecordtest" + mRecNum % 10 + ".wav";
         mRecNum++;
         return nextfilename;
     }
