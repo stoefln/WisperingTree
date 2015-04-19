@@ -13,6 +13,8 @@ import android.view.ViewGroup;
 import net.microtrash.wisperingtree.AudioRecorder;
 import net.microtrash.wisperingtree.R;
 import net.microtrash.wisperingtree.util.Profiler;
+import net.microtrash.wisperingtree.util.Static;
+import net.microtrash.wisperingtree.util.Tools;
 import net.microtrash.wisperingtree.util.Utils;
 import net.microtrash.wisperingtree.view.RangeSeekBar;
 
@@ -68,15 +70,36 @@ public class RecordFragment extends Fragment {
         return mRootView;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        mRecNum = Tools.getPreferenceInt(getActivity(), Static.KEY_LAST_REC_NUM);
+        initRecorder(getNextFilename());
+        mRecorder.start();
+        observeAudio();
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        Tools.putPreference(getActivity(), Static.KEY_LAST_REC_NUM, mRecNum);
+
+        if (mRecorder != null) {
+            mRecorder.release();
+            mRecorder = null;
+        }
+
+        if (mPlayer != null) {
+            mPlayer.release();
+            mPlayer = null;
+        }
+    }
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
         mAudioLevelBar.setNormalizedMinValue(0.5);
-        initRecorder(getNextFilename());
-        mRecorder.start();
-        observeAudio();
     }
 
     private void observeAudio() {
@@ -84,33 +107,33 @@ public class RecordFragment extends Fragment {
         mRootView.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (mRecorder != null) {
-                    int amp = mRecorder.getMaxAmplitude();
-                    //Log.v(TAG, "vol: " + amp + " state: " + mRecorder.getState());
+            if (mRecorder != null) {
+                int amp = mRecorder.getMaxAmplitude();
+                //Log.v(TAG, "vol: " + amp + " state: " + mRecorder.getState());
 
-                    //mAudioLevelBar.getAbsoluteMaxValue(30000);
-                    float normalizedLevel = (float) amp / (float) 15000;
+                //mAudioLevelBar.getAbsoluteMaxValue(30000);
+                float normalizedLevel = (float) amp / (float) 15000;
 
-                    if (normalizedLevel > mAudioLevelBar.getNormalizedMaxValue() && !mSampling) {
-                        Log.v(TAG, "vol: " + amp + " normalized: " + normalizedLevel);
-                        startSampling();
-                        mSampling = true;
-                    }
-                    if (normalizedLevel > mAudioLevelBar.getNormalizedMinValue()) {
-                        mLastTimeAboveMin = System.currentTimeMillis();
-                    }
-                    if (mSampling && mLastTimeAboveMin != null) {
-                        long timeDiff = System.currentTimeMillis() - mLastTimeAboveMin;
-                        // if recording was started AND level has stayed below min level for at least a second -> stop
-                        if (timeDiff > 1000 && normalizedLevel < mAudioLevelBar.getNormalizedMinValue()) {
-                            stopSampling();
-                            mSampling = false;
-                            mLastTimeAboveMin = null;
-                        }
-                    }
-                    mAudioLevelBar.setLevel(normalizedLevel);
-                    observeAudio();
+                if (normalizedLevel > mAudioLevelBar.getNormalizedMaxValue() && !mSampling) {
+                    Log.v(TAG, "vol: " + amp + " normalized: " + normalizedLevel);
+                    startSampling();
+                    mSampling = true;
                 }
+                if (normalizedLevel > mAudioLevelBar.getNormalizedMinValue()) {
+                    mLastTimeAboveMin = System.currentTimeMillis();
+                }
+                if (mSampling && mLastTimeAboveMin != null) {
+                    long timeDiff = System.currentTimeMillis() - mLastTimeAboveMin;
+                    // if recording was started AND level has stayed below min level for at least a second -> stop
+                    if (timeDiff > 1000 && normalizedLevel < mAudioLevelBar.getNormalizedMinValue()) {
+                        stopSampling();
+                        mSampling = false;
+                        mLastTimeAboveMin = null;
+                    }
+                }
+                mAudioLevelBar.setLevel(normalizedLevel);
+                observeAudio();
+            }
             }
         }, 50);
 
@@ -134,7 +157,6 @@ public class RecordFragment extends Fragment {
             }
 
             try {
-
                 initRecorder(getNextFilename());
                 mRecorder.start();
             } catch (Exception e) {
@@ -151,7 +173,6 @@ public class RecordFragment extends Fragment {
         mRecNum++;
         return nextfilename;
     }
-
 
     private static final String LOG_TAG = "AudioRecordTest";
     private static String mEmptyFileName = null;
@@ -232,18 +253,5 @@ public class RecordFragment extends Fragment {
         mRecorder = null;
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        if (mRecorder != null) {
-            mRecorder.release();
-            mRecorder = null;
-        }
-
-        if (mPlayer != null) {
-            mPlayer.release();
-            mPlayer = null;
-        }
-    }
 }
 

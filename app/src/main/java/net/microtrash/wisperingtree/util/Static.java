@@ -5,4 +5,5 @@ package net.microtrash.wisperingtree.util;
  */
 public class Static {
     public static final String FOLDER_NAME = "Wisp";
+    public static final String KEY_LAST_REC_NUM = "last rec number";
 }
