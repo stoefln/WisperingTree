@@ -11,6 +11,7 @@ import android.view.WindowManager;
 
 import net.microtrash.wisperingtree.fragment.PlayFragment;
 import net.microtrash.wisperingtree.fragment.RecordFragment;
+import net.microtrash.wisperingtree.fragment.SyncFragment;
 
 
 public class MainActivity extends ActionBarActivity
@@ -49,6 +50,9 @@ public class MainActivity extends ActionBarActivity
                 break;
             case 1:
                 fragment = RecordFragment.newInstance();
+                break;
+            case 2:
+                fragment = SyncFragment.newInstance();
                 break;
         }
 
