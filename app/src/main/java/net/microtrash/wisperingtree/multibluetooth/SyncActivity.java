@@ -1,6 +1,9 @@
 package net.microtrash.wisperingtree.multibluetooth;
 
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentTransaction;
@@ -61,6 +64,9 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
 
         Utils.mkDir(Utils.getAppRootDir());
 
+        if(BluetoothAdapter.getDefaultAdapter().getAddress().equals(Static.SERVER_MAC)){
+            serverType();
+        }
     }
 
     @Override
@@ -107,15 +113,32 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
     public void connect() {
 
         if (getTypeBluetooth() == BluetoothManager.TypeBluetooth.Client) {
-            //showDiscoveredDevicesDialog();
-            onDeviceSelectedForConnection(Static.SERVER_MAC);
+            clientConnect();
+
         } else{
             String address = Static.CLIENT_MAC1;
-            setLogText("===> Creating server for client address "+address+"...");
-            mBluetoothManager.createServer(address);
+            createServerForClient(address);
         }
 
         //scanAllBluetoothDevice();
+    }
+
+    private void clientConnect() {
+        //showDiscoveredDevicesDialog();
+        mBluetoothManager.setOnFileReceivedListener(new BluetoothManager.OnFileReceivedListener() {
+            @Override
+            public void onFileReceived(File file) {
+                setLogText("===> on file received: " + file.getName());
+                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)));
+            }
+        });
+
+        onDeviceSelectedForConnection(Static.SERVER_MAC);
+    }
+
+    void createServerForClient(String mac){
+        setLogText("===> Creating server for client address "+mac+"...");
+        mBluetoothManager.createServer(mac);
     }
 
     @OnClick(R.id.disconnect)
@@ -173,7 +196,6 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
         mEditText.setText("Server");
         mDisconnect.setEnabled(true);
         File rootDir = new File(Utils.getAppRootDir());
-
         for (File file : rootDir.listFiles()) {
             mBluetoothManager.sendFile(file);
             break;
@@ -183,6 +205,7 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
     @Override
     public void onServeurConnectionFail() {
         setLogText("===> Serveur Connexion fail !");
+        createServerForClient(Static.CLIENT_MAC1);
     }
 
     @Override

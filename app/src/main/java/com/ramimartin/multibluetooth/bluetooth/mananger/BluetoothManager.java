@@ -28,6 +28,8 @@ import de.greenrobot.event.EventBus;
 public class BluetoothManager extends BroadcastReceiver {
 
 
+    private OnFileReceivedListener mOnFileReceivedListener;
+
     public enum TypeBluetooth {
         Client,
         Server,
@@ -215,8 +217,13 @@ public class BluetoothManager extends BroadcastReceiver {
             IntentFilter bondStateIntent = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
             mActivity.registerReceiver(this, bondStateIntent);
             mServerConnector = new BluetoothClient(mBluetoothAdapter, addressMac, mLogger);
+            mServerConnector.setOnFileReceivedListener(mOnFileReceivedListener);
             new Thread(mServerConnector).start();
         }
+    }
+
+    public void setOnFileReceivedListener(OnFileReceivedListener listener){
+        mOnFileReceivedListener = listener;
     }
 
     public void createServer(String address) {
@@ -358,5 +365,9 @@ public class BluetoothManager extends BroadcastReceiver {
             resetServer();
             resetClient();
         }
+    }
+
+    public interface OnFileReceivedListener{
+        void onFileReceived(File file);
     }
 }

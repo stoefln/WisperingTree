@@ -3,8 +3,11 @@ package com.ramimartin.multibluetooth.bluetooth.client;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 
+import com.ramimartin.multibluetooth.bluetooth.mananger.BluetoothManager;
 import com.ramimartin.multibluetooth.bus.BluetoothCommunicator;
 import com.ramimartin.multibluetooth.bus.ClientConnectionFail;
 import com.ramimartin.multibluetooth.bus.ClientConnectionSuccess;
@@ -13,6 +16,8 @@ import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Protocol;
 import net.microtrash.wisperingtree.util.Utils;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,6 +48,7 @@ public class BluetoothClient implements Runnable {
     private LoggerInterface mLogger;
     private String mReceiveFilename;
     private long mReceiveFileLength;
+    private BluetoothManager.OnFileReceivedListener mOnFileReceivedListener;
 
     public void setLogger(LoggerInterface logger) {
         mLogger = logger;
@@ -110,16 +116,17 @@ public class BluetoothClient implements Runnable {
                     }
                     int c = 0;
                     long bRead = 0;
-                    OutputStream oos = new FileOutputStream(Utils.getAppRootDir() + "/" + mReceiveFilename);
+                    final String filePath = Utils.getAppRootDir() + "/" + mReceiveFilename;
+                    OutputStream oos = new FileOutputStream(filePath);
 
                     while (bRead < mReceiveFileLength && (c = mInputStream.read(buffer, 0, buffer.length)) > 0) {
                         if ((bRead + bufferSize) >= mReceiveFileLength) {
                             c = (int) (mReceiveFileLength - bRead);
                             mLogger.log("rest bytes", "" + c);
                         }
-                        if(bRead < 10000 || bRead + 10000 > mReceiveFileLength){
+                        /*if (bRead < 10000 || bRead + 10000 > mReceiveFileLength) {
                             mLogger.log(new String(buffer));
-                        }
+                        }*/
                         oos.write(buffer, 0, c);
                         oos.flush();
                         bRead += c;
@@ -130,7 +137,19 @@ public class BluetoothClient implements Runnable {
 
                     mLogger.log("saved file", mReceiveFilename);
 
+                    String filePath2 = Utils.getAppRootDir() + "/" + "audiotest.wav";
+                    copy(new File(filePath), new File(filePath2));
 
+                    mLogger.log("copied file");
+                    if(mOnFileReceivedListener != null){
+                        new Handler(Looper.getMainLooper()).post(new Runnable() {
+                            @Override
+                            public void run() {
+                                mOnFileReceivedListener.onFileReceived(new File(filePath));
+                            }
+                        });
+
+                    }
                     mReceiveFile = false;
                     mReceiveFilename = null;
 
@@ -167,6 +186,19 @@ public class BluetoothClient implements Runnable {
         }
     }
 
+    public void copy(File src, File dst) throws IOException {
+        InputStream in = new FileInputStream(src);
+        OutputStream out = new FileOutputStream(dst);
+
+        // Transfer bytes from in to out
+        byte[] buf = new byte[1024];
+        int len;
+        while ((len = in.read(buf)) > 0) {
+            out.write(buf, 0, len);
+        }
+        in.close();
+        out.close();
+    }
 
     public void closeConnexion() {
         if (mSocket != null) {
@@ -186,4 +218,11 @@ public class BluetoothClient implements Runnable {
     }
 
 
+    public void setOnFileReceivedListener(BluetoothManager.OnFileReceivedListener onFileReceivedListener) {
+        mOnFileReceivedListener = onFileReceivedListener;
+    }
+
+    public BluetoothManager.OnFileReceivedListener getOnFileReceivedListener() {
+        return mOnFileReceivedListener;
+    }
 }
