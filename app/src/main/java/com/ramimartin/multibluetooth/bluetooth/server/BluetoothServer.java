@@ -9,8 +9,15 @@ import com.ramimartin.multibluetooth.bus.BluetoothCommunicator;
 import com.ramimartin.multibluetooth.bus.ServeurConnectionFail;
 import com.ramimartin.multibluetooth.bus.ServeurConnectionSuccess;
 
+import net.microtrash.wisperingtree.util.LoggerInterface;
+import net.microtrash.wisperingtree.util.Protocol;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.UUID;
 
@@ -21,7 +28,9 @@ import de.greenrobot.event.EventBus;
  */
 public class BluetoothServer implements Runnable {
 
-    private boolean CONTINUE_READ_WRITE = true;
+    private static final String TAG = "BluetoothServer";
+    private final LoggerInterface mLogger;
+    private boolean mRunning = true;
 
     private UUID mUUID;
     public String mClientAddress;
@@ -30,11 +39,14 @@ public class BluetoothServer implements Runnable {
     private BluetoothSocket mSocket;
     private InputStream mInputStream;
     private OutputStreamWriter mOutputStreamWriter;
+    private boolean mReceiveFile = false;
+    private String mReceiveFilename;
 
-    public BluetoothServer(BluetoothAdapter bluetoothAdapter, String clientAddress){
+    public BluetoothServer(BluetoothAdapter bluetoothAdapter, String clientAddress, LoggerInterface logger) {
         mBluetoothAdapter = bluetoothAdapter;
         mClientAddress = clientAddress;
         mUUID = UUID.fromString("e0917680-d427-11e4-8830-" + mClientAddress.replace(":", ""));
+        mLogger = logger;
     }
 
     @Override
@@ -51,7 +63,7 @@ public class BluetoothServer implements Runnable {
 
             EventBus.getDefault().post(new ServeurConnectionSuccess(mClientAddress));
 
-            while(CONTINUE_READ_WRITE) {
+            while (mRunning) {
                 final StringBuilder sb = new StringBuilder();
                 bytesRead = mInputStream.read(buffer);
                 if (bytesRead != -1) {
@@ -63,6 +75,7 @@ public class BluetoothServer implements Runnable {
                     result = result + new String(buffer, 0, bytesRead);
                     sb.append(result);
                 }
+
                 EventBus.getDefault().post(new BluetoothCommunicator(sb.toString()));
 
             }
@@ -74,7 +87,7 @@ public class BluetoothServer implements Runnable {
 
     public void write(String message) {
         try {
-            if(mOutputStreamWriter != null) {
+            if (mOutputStreamWriter != null) {
                 mOutputStreamWriter.write(message);
                 mOutputStreamWriter.flush();
             }
@@ -83,13 +96,48 @@ public class BluetoothServer implements Runnable {
         }
     }
 
-    public String getClientAddress(){
+    public void sendFile(File file) {
+        int bufferSize = 1024;
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        byte[] buffer = new byte[bufferSize];
+        OutputStream outputStream = null;
+        int c = 0;
+
+        try {
+            outputStream = mSocket.getOutputStream();
+            long totalLength = file.length();
+            String command = Protocol.COMMAND_SEND_FILE + Protocol.SEPARATOR + file.getName() + Protocol.SEPARATOR + totalLength;
+            outputStream.write(command.getBytes());
+            outputStream.flush();
+
+            long bytesWritten = 0;
+            while ((c = is.read(buffer, 0, buffer.length)) > 0) {
+                outputStream.write(buffer, 0, c);
+                outputStream.flush();
+                if(bytesWritten < 10000 || bytesWritten + 10000 > totalLength){
+                    mLogger.log(new String(buffer));
+                }
+                bytesWritten += c;
+            }
+            mLogger.log("sent total of bytes", bytesWritten+"");
+            is.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public String getClientAddress() {
         return mClientAddress;
     }
 
-    public void closeConnection(){
-        if(mSocket != null){
-            try{
+    public void closeConnection() {
+        if (mSocket != null) {
+            try {
                 mInputStream.close();
                 mInputStream = null;
                 mOutputStreamWriter.close();
@@ -98,9 +146,10 @@ public class BluetoothServer implements Runnable {
                 mSocket = null;
                 mServerSocket.close();
                 mServerSocket = null;
-                CONTINUE_READ_WRITE = false;
-            }catch(Exception e){}
-            CONTINUE_READ_WRITE = false;
+                mRunning = false;
+            } catch (Exception e) {
+            }
+            mRunning = false;
         }
     }
 }

@@ -15,7 +15,10 @@ import com.ramimartin.multibluetooth.activity.BluetoothFragmentActivity;
 import com.ramimartin.multibluetooth.bluetooth.mananger.BluetoothManager;
 
 import net.microtrash.wisperingtree.R;
+import net.microtrash.wisperingtree.util.Static;
+import net.microtrash.wisperingtree.util.Utils;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -55,6 +58,9 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
         mListLog = new ArrayList<String>();
         mAdapter = new ArrayAdapter<String>(this, R.layout.item_console, mListLog);
         mListView.setAdapter(mAdapter);
+
+        Utils.mkDir(Utils.getAppRootDir());
+
     }
 
     @Override
@@ -65,31 +71,51 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
     @OnClick(R.id.serveur)
     public void serverType() {
         setLogText("===> Start Server ! Your mac address : " + mBluetoothManager.getYourBtMacAddress());
-        setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_3600_SEC);
+        //setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_3600_SEC);
         selectServerMode();
         mServerToggleBtn.setChecked(true);
         mClientToggleBtn.setChecked(false);
         mConnectBtn.setEnabled(true);
         mConnectBtn.setText("Scan Devices");
+
+        mConnectBtn.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                connect();
+            }
+        },2000);
     }
 
     @OnClick(R.id.client)
     public void clientType() {
         setLogText("===> Start Client ! Your mac address : " + mBluetoothManager.getYourBtMacAddress());
-        setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_120_SEC);
+        //setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_120_SEC);
         selectClientMode();
         mServerToggleBtn.setChecked(false);
         mClientToggleBtn.setChecked(true);
         mConnectBtn.setEnabled(true);
+
+        mConnectBtn.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                connect();
+            }
+        }, 2000);
     }
 
     @OnClick(R.id.connect)
     public void connect() {
-        setLogText("===> Start Scanning devices ...");
+
         if (getTypeBluetooth() == BluetoothManager.TypeBluetooth.Client) {
-            showDiscoveredDevicesDialog();
+            //showDiscoveredDevicesDialog();
+            onDeviceSelectedForConnection(Static.SERVER_MAC);
+        } else{
+            String address = Static.CLIENT_MAC1;
+            setLogText("===> Creating server for client address "+address+"...");
+            mBluetoothManager.createServer(address);
         }
-        scanAllBluetoothDevice();
+
+        //scanAllBluetoothDevice();
     }
 
     @OnClick(R.id.disconnect)
@@ -146,6 +172,12 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
         setLogText("===> Serveur Connexion success !");
         mEditText.setText("Server");
         mDisconnect.setEnabled(true);
+        File rootDir = new File(Utils.getAppRootDir());
+
+        for (File file : rootDir.listFiles()) {
+            mBluetoothManager.sendFile(file);
+            break;
+        }
     }
 
     @Override

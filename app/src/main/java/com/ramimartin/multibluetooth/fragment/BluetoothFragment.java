@@ -13,6 +13,8 @@ import com.ramimartin.multibluetooth.bus.ClientConnectionSuccess;
 import com.ramimartin.multibluetooth.bus.ServeurConnectionFail;
 import com.ramimartin.multibluetooth.bus.ServeurConnectionSuccess;
 
+import net.microtrash.wisperingtree.util.Logger;
+
 import de.greenrobot.event.EventBus;
 
 /**
@@ -25,7 +27,7 @@ public abstract class BluetoothFragment extends Fragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        mBluetoothManager = new BluetoothManager(getActivity());
+        mBluetoothManager = new BluetoothManager(getActivity(), Logger.getInstance());
         checkBluetoothAviability();
         mBluetoothManager.setNbrClientMax(myNbrClientMax());
     }
@@ -93,7 +95,7 @@ public abstract class BluetoothFragment extends Fragment {
     }
 
     public void createServeur(String address){
-        mBluetoothManager.createServeur(address);
+        mBluetoothManager.createServer(address);
     }
 
     public void selectServerMode(){
