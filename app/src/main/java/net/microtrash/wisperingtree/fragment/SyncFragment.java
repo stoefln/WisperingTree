@@ -7,7 +7,6 @@ import android.support.v7.widget.SwitchCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CompoundButton;
 
 import net.microtrash.wisperingtree.R;
 import net.microtrash.wisperingtree.service.SyncService;
@@ -46,24 +45,6 @@ public class SyncFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
 
-        mEnableSyncSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                Intent intent = new Intent(getActivity(), SyncService.class);
-                if (isChecked) {
-                    getActivity().startService(intent);
-                } else {
-                    getActivity().stopService(intent);
-                }
-                // check and display result
-                mEnableSyncSwitch.postDelayed(new Runnable() {
-                    @Override
-                    public void run() {
-                        mEnableSyncSwitch.setChecked(Utils.isServiceRunning(getActivity(), SyncService.class));
-                    }
-                }, 1000);
-            }
-        });
         mEnableSyncSwitch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

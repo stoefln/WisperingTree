@@ -5,4 +5,5 @@
     <color name="recording_red">#AA0000</color>
     <color name="recording_green">#34c996</color>
     <color name="darker_gray">#999999</color>
+    <color name="dark_gray">#666666</color>
 </resources>
