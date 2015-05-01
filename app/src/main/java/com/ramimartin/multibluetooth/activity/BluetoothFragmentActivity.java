@@ -124,7 +124,7 @@ public abstract class BluetoothFragmentActivity extends FragmentActivity {
     public abstract void onClientConnectionSuccess();
     public abstract void onClientConnectionFail();
     public abstract void onServeurConnectionSuccess();
-    public abstract void onServeurConnectionFail();
+    public abstract void onServerConnectionFail(String clientAdressConnectionFail);
     public abstract void onBluetoothStartDiscovery();
     public abstract void onBluetoothCommunicator(String messageReceive);
     public abstract void onBluetoothNotAviable();
@@ -154,7 +154,7 @@ public abstract class BluetoothFragmentActivity extends FragmentActivity {
 
     public void onEventMainThread(ServeurConnectionFail event){
         mBluetoothManager.onServerConnectionFailed(event.mClientAdressConnectionFail);
-        onServeurConnectionFail();
+        onServerConnectionFail(event.mClientAdressConnectionFail);
     }
 
     public void onEventMainThread(BluetoothCommunicator event){

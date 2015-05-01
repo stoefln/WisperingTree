@@ -68,8 +68,10 @@ public class BluetoothClient implements Runnable {
 //        List<UUID> uuidCandidates = new ArrayList<UUID>();
 //        uuidCandidates.add(mUuid);
 
-        while (mInputStream == null) {
+        int maxTries = 3;
+        if (mInputStream == null) {
             mBluetoothConnector = new BluetoothConnector(mBluetoothDevice, true, mBluetoothAdapter, mUuid);
+
 
             try {
                 mSocket = mBluetoothConnector.connect().getUnderlyingSocket();
@@ -78,7 +80,9 @@ public class BluetoothClient implements Runnable {
                 Log.e("", "===> mSocket IOException", e1);
                 EventBus.getDefault().post(new ClientConnectionFail());
                 e1.printStackTrace();
+                return;
             }
+
         }
 
         if (mSocket == null) {

@@ -1,63 +1,93 @@
 package net.microtrash.wisperingtree.fragment;
 
-import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
+import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.util.Log;
+import android.support.v7.widget.SwitchCompat;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.CompoundButton;
 
-import com.ramimartin.multibluetooth.fragment.BluetoothFragment;
+import net.microtrash.wisperingtree.R;
+import net.microtrash.wisperingtree.service.SyncService;
+import net.microtrash.wisperingtree.util.Utils;
 
-/**
- * Created by steph on 4/23/15.
- */
-public class SyncFragment extends BluetoothFragment {
+import butterknife.ButterKnife;
+import butterknife.InjectView;
+
+
+public class SyncFragment extends Fragment {
+
     private static final String TAG = "SyncFragment";
 
+    @InjectView(R.id.enable_sync_switch)
+    SwitchCompat mEnableSyncSwitch;
+
+    private View mRootView;
+
     @Override
-    public int myNbrClientMax() {
-        return 5;
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        mRootView = inflater.inflate(R.layout.fragment_sync, container, false);
+        ButterKnife.inject(this, mRootView);
+
+        return mRootView;
     }
 
     @Override
-    public void onBluetoothDeviceFound(BluetoothDevice device) {
-        Log.v(TAG, "found!");
+    public void onResume() {
+        super.onResume();
+        mEnableSyncSwitch.setChecked(Utils.isServiceRunning(getActivity(), SyncService.class));
     }
 
     @Override
-    public void onClientConnectionSuccess() {
-        Log.v(TAG, "client connected!");
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+
+        mEnableSyncSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                Intent intent = new Intent(getActivity(), SyncService.class);
+                if (isChecked) {
+                    getActivity().startService(intent);
+                } else {
+                    getActivity().stopService(intent);
+                }
+                // check and display result
+                mEnableSyncSwitch.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        mEnableSyncSwitch.setChecked(Utils.isServiceRunning(getActivity(), SyncService.class));
+                    }
+                }, 1000);
+            }
+        });
+        mEnableSyncSwitch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getActivity(), SyncService.class);
+                boolean isChecked = mEnableSyncSwitch.isChecked();
+                if (isChecked) {
+                    getActivity().startService(intent);
+                } else {
+                    getActivity().stopService(intent);
+                }
+                // check and display result
+                mEnableSyncSwitch.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        mEnableSyncSwitch.setChecked(Utils.isServiceRunning(getActivity(), SyncService.class));
+                    }
+                }, 1000);
+            }
+        });
     }
 
     @Override
-    public void onClientConnectionFail() {
-        Log.v(TAG, "Feil!");
-    }
-
-    @Override
-    public void onServeurConnectionSuccess() {
-        Log.v(TAG, "onServeurConnectionSuccess!");
-    }
-
-    @Override
-    public void onServeurConnectionFail() {
-        Log.v(TAG, "onServeurConnectionFail!");
-    }
-
-    @Override
-    public void onBluetoothStartDiscovery() {
-        Log.v(TAG, "onBluetoothStartDiscovery");
-    }
-
-    @Override
-    public void onBluetoothCommunicator(String messageReceive) {
-        Log.v(TAG, "receive string: "+messageReceive);
-    }
-
-    @Override
-    public void onBluetoothNotAviable() {
-
-    }
-
-    public static Fragment newInstance() {
-        return new SyncFragment();
+    public void onDestroy() {
+        super.onDestroy();
     }
 }
+

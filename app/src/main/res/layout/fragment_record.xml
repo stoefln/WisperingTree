@@ -1,34 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:orientation="vertical"
+              xmlns:tools="http://schemas.android.com/tools"
               android:layout_width="match_parent"
-              android:layout_height="match_parent">
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              android:padding="@dimen/activity_horizontal_margin">
 
-    <Button
-        android:id="@+id/btn_play"
-        android:layout_width="wrap_content"
+    <fragment
+        class="net.microtrash.wisperingtree.fragment.SyncFragment"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Play"/>
-
-
-    <View
-        android:id="@+id/recording_indicator"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:background="@color/recording_green"/>
-
+        tools:layout="@layout/fragment_sync"/>
 
     <net.microtrash.wisperingtree.view.RangeSeekBar
         android:id="@+id/audioLevelBar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="@dimen/activity_vertical_margin"/>
+    <View
+        android:id="@+id/recording_indicator"
+        android:layout_width="match_parent"
+        android:layout_height="10dp"
+        android:background="@color/recording_green"/>
 
-    <SeekBar
-        android:layout_width="wrap_content"
-        android:layout_height="match_parent"
-        android:id="@+id/seekBar"
-        android:layout_below="@+id/progressBar"
-        android:layout_alignRight="@+id/progressBar"
-        android:layout_alignEnd="@+id/progressBar"
-        android:layout_marginTop="178dp"/>
+    <fragment
+        class="net.microtrash.wisperingtree.fragment.LogFragment"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        tools:layout="@layout/fragment_log"/>
 </LinearLayout>

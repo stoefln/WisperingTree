@@ -5,24 +5,24 @@ import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.SwitchCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CompoundButton;
 
 import net.microtrash.wisperingtree.AudioRecorder;
 import net.microtrash.wisperingtree.R;
+import net.microtrash.wisperingtree.service.SyncService;
 import net.microtrash.wisperingtree.util.Profiler;
 import net.microtrash.wisperingtree.util.Static;
 import net.microtrash.wisperingtree.util.Tools;
 import net.microtrash.wisperingtree.util.Utils;
 import net.microtrash.wisperingtree.view.RangeSeekBar;
 
-import java.io.IOException;
-
 import butterknife.ButterKnife;
 import butterknife.InjectView;
-import butterknife.OnClick;
 
 
 public class RecordFragment extends Fragment {
@@ -42,6 +42,9 @@ public class RecordFragment extends Fragment {
 
     @InjectView(R.id.recording_indicator)
     View mRecordingIndicator;
+
+    @InjectView(R.id.enable_sync_switch)
+    SwitchCompat mEnableSyncSwitch;
 
     private int mRecNum;
     private Long mLastTimeAboveMin = null;
@@ -77,6 +80,8 @@ public class RecordFragment extends Fragment {
         initRecorder(getNextFilename());
         mRecorder.start();
         observeAudio();
+
+        mEnableSyncSwitch.setChecked(Utils.isServiceRunning(getActivity(), SyncService.class));
     }
 
     @Override
@@ -100,7 +105,16 @@ public class RecordFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         mAudioLevelBar.setNormalizedMinValue(0.5);
+        mEnableSyncSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked){
+
+                }
+            }
+        });
     }
+
 
     private void observeAudio() {
 
@@ -179,44 +193,8 @@ public class RecordFragment extends Fragment {
 
     private AudioRecorder mRecorder = null;
 
-    @InjectView(R.id.btn_play)
-    protected View mPlayButton = null;
-
     private MediaPlayer mPlayer = null;
 
-
-    @OnClick(R.id.btn_play)
-    void onPlayButtonClick() {
-        if (mLastTimeAboveMin != null) {
-            stopSampling();
-        } else {
-            startSampling();
-        }
-    }
-
-    private void onPlay(boolean start) {
-        if (start) {
-            startPlaying();
-        } else {
-            stopPlaying();
-        }
-    }
-
-    private void startPlaying() {
-        mPlayer = new MediaPlayer();
-        try {
-            mPlayer.setDataSource(mEmptyFileName);
-            mPlayer.prepare();
-            mPlayer.start();
-        } catch (IOException e) {
-            Log.e(LOG_TAG, "prepare() failed");
-        }
-    }
-
-    private void stopPlaying() {
-        mPlayer.release();
-        mPlayer = null;
-    }
 
     private final static int[][] sampleRates =
             {
@@ -237,21 +215,10 @@ public class RecordFragment extends Fragment {
         }
         while ((++i < sampleRates.length) & !(mRecorder.getState() == AudioRecorder.State.INITIALIZING));
 
-        //mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        //mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
         mRecorder.setOutputFile(filename);
-        //mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-
-
         mRecorder.prepare();
-
     }
 
-    private void stopRecording() {
-        mRecorder.stop();
-        mRecorder.release();
-        mRecorder = null;
-    }
 
 }
 

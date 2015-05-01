@@ -11,7 +11,6 @@ import android.view.WindowManager;
 
 import net.microtrash.wisperingtree.fragment.PlayFragment;
 import net.microtrash.wisperingtree.fragment.RecordFragment;
-import net.microtrash.wisperingtree.fragment.SyncFragment;
 
 
 public class MainActivity extends ActionBarActivity
@@ -40,6 +39,13 @@ public class MainActivity extends ActionBarActivity
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+
+
+    @Override
     public void onNavigationDrawerItemSelected(int position) {
         // update the main content by replacing fragments
         FragmentManager fragmentManager = getSupportFragmentManager();
@@ -51,14 +57,14 @@ public class MainActivity extends ActionBarActivity
             case 1:
                 fragment = RecordFragment.newInstance();
                 break;
-            case 2:
-                fragment = SyncFragment.newInstance();
-                break;
+
         }
 
-        fragmentManager.beginTransaction()
-                .replace(R.id.container, fragment)
-                .commit();
+        if(fragment != null) {
+            fragmentManager.beginTransaction()
+                    .replace(R.id.container, fragment)
+                    .commit();
+        }
     }
 
 

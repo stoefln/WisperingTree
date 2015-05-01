@@ -1,6 +1,5 @@
 package com.ramimartin.multibluetooth.bluetooth.mananger;
 
-import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
@@ -51,7 +50,7 @@ public class BluetoothManager extends BroadcastReceiver {
 
     private static int BLUETOOTH_NBR_CLIENT_MAX = 7;
 
-    private Activity mActivity;
+    private Context mActivity;
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothClient mServerConnector;
 
@@ -71,7 +70,7 @@ public class BluetoothManager extends BroadcastReceiver {
         mLogger = logger;
     }
 
-    public BluetoothManager(Activity activity, LoggerInterface logger) {
+    public BluetoothManager(Context activity, LoggerInterface logger) {
         mLogger = logger;
         mActivity = activity;
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
@@ -173,10 +172,16 @@ public class BluetoothManager extends BroadcastReceiver {
     }
 
     public boolean checkBluetoothAviability() {
-        if (mBluetoothAdapter == null) {
+        if (mBluetoothAdapter == null || !mBluetoothAdapter.isEnabled()) {
             return false;
         } else {
             return true;
+        }
+    }
+
+    public void enableBluetooth(){
+        if(mBluetoothAdapter != null){
+            mBluetoothAdapter.enable();
         }
     }
 
@@ -198,10 +203,10 @@ public class BluetoothManager extends BroadcastReceiver {
                 Log.e("", "===> mBluetoothAdapter.isDiscovering()");
                 return;
             } else {
-                Log.e("", "===> startDiscovery");
+                Log.e("", "===> startDiscovery- not supported- check code!");
                 Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
                 discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, mTimeDiscoverable);
-                mActivity.startActivityForResult(discoverableIntent, REQUEST_DISCOVERABLE_CODE);
+                //mActivity.startActivityForResult(discoverableIntent, REQUEST_DISCOVERABLE_CODE);
             }
         }
     }
@@ -356,7 +361,7 @@ public class BluetoothManager extends BroadcastReceiver {
         cancelDiscovery();
 
         if (!mBluetoothIsEnableOnStart) {
-            mBluetoothAdapter.disable();
+            //mBluetoothAdapter.disable();
         }
 
         mBluetoothAdapter = null;

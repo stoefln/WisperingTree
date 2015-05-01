@@ -5,6 +5,7 @@ import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentTransaction;
 import android.widget.ArrayAdapter;
@@ -66,6 +67,8 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
 
         if(BluetoothAdapter.getDefaultAdapter().getAddress().equals(Static.SERVER_MAC)){
             serverType();
+        } else{
+            clientType();
         }
     }
 
@@ -87,7 +90,7 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
         mConnectBtn.postDelayed(new Runnable() {
             @Override
             public void run() {
-                connect();
+                createServerForClient(Static.CLIENT_MAC1);
             }
         },2000);
     }
@@ -104,24 +107,11 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
         mConnectBtn.postDelayed(new Runnable() {
             @Override
             public void run() {
-                connect();
+                clientConnect();
             }
         }, 2000);
     }
 
-    @OnClick(R.id.connect)
-    public void connect() {
-
-        if (getTypeBluetooth() == BluetoothManager.TypeBluetooth.Client) {
-            clientConnect();
-
-        } else{
-            String address = Static.CLIENT_MAC1;
-            createServerForClient(address);
-        }
-
-        //scanAllBluetoothDevice();
-    }
 
     private void clientConnect() {
         //showDiscoveredDevicesDialog();
@@ -137,7 +127,7 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
     }
 
     void createServerForClient(String mac){
-        setLogText("===> Creating server for client address "+mac+"...");
+        setLogText("===> Creating server for client address " + mac + "...");
         mBluetoothManager.createServer(mac);
     }
 
@@ -188,6 +178,12 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
         mConnectBtn.setEnabled(false);
         mConnectBtn.setText("Connect");
         mEditText.setText("");
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                clientConnect();
+            }
+        }, 1000);
     }
 
     @Override
@@ -203,8 +199,8 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
     }
 
     @Override
-    public void onServeurConnectionFail() {
-        setLogText("===> Serveur Connexion fail !");
+    public void onServerConnectionFail(String clientAdressConnectionFail) {
+        setLogText("===> Client connection lost! Mac: "+clientAdressConnectionFail);
         createServerForClient(Static.CLIENT_MAC1);
     }
 
