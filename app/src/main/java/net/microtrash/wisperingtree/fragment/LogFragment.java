@@ -30,8 +30,6 @@ public class LogFragment extends Fragment {
     private ArrayList<String> mListLog;
     private ArrayAdapter<String> mAdapter;
 
-
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {

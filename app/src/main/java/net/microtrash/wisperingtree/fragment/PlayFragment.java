@@ -89,7 +89,7 @@ public class PlayFragment extends Fragment {
             Sample s = new Sample(file);
             mSamplePlayer.addSample(s);
         }
-        mSamplePlayer.start();
+//        mSamplePlayer.start();
     }
 
     @Override

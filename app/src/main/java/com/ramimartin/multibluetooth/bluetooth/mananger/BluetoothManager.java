@@ -179,8 +179,8 @@ public class BluetoothManager extends BroadcastReceiver {
         }
     }
 
-    public void enableBluetooth(){
-        if(mBluetoothAdapter != null){
+    public void enableBluetooth() {
+        if (mBluetoothAdapter != null) {
             mBluetoothAdapter.enable();
         }
     }
@@ -227,7 +227,7 @@ public class BluetoothManager extends BroadcastReceiver {
         }
     }
 
-    public void setOnFileReceivedListener(OnFileReceivedListener listener){
+    public void setOnFileReceivedListener(OnFileReceivedListener listener) {
         mOnFileReceivedListener = listener;
     }
 
@@ -239,7 +239,7 @@ public class BluetoothManager extends BroadcastReceiver {
             setServerWaitingConnection(address, mBluetoothServer, threadServer);
             IntentFilter bondStateIntent = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
             mActivity.registerReceiver(this, bondStateIntent);
-            Log.e("", "===> createServer address : " + address);
+            mLogger.log("===> createServer address : " + address);
         }
     }
 
@@ -248,7 +248,7 @@ public class BluetoothManager extends BroadcastReceiver {
             if (addressClientConnected.equals(bluetoothServerMap.getValue().getClientAddress())) {
                 mClientConnectors.add(bluetoothServerMap.getValue());
                 incrementNbrConnection();
-                Log.e("", "===> onServerConnectionSuccess address : " + addressClientConnected);
+                mLogger.log("===> onServerConnectionSuccess address : " + addressClientConnected);
                 return;
             }
         }
@@ -266,7 +266,7 @@ public class BluetoothManager extends BroadcastReceiver {
                 mServeurThreadList.remove(addressClientConnectionFailed);
                 mAdressListServerWaitingConnection.remove(addressClientConnectionFailed);
                 decrementNbrConnection();
-                Log.e("", "===> onServerConnectionFailed address : " + addressClientConnectionFailed);
+                mLogger.log("===> onServerConnectionFailed address : " + addressClientConnectionFailed);
                 return;
             }
             index++;
@@ -286,10 +286,14 @@ public class BluetoothManager extends BroadcastReceiver {
         }
     }
 
+    /**
+     * fires a FileSentToClient event as soon as the transfer is done
+     * @param file
+     */
     public void sendFile(File file) {
 
         if (mType != null && isConnected) {
-            mLogger.log("Sending file: ", file.getName());
+            mLogger.log("===> Sending file", file.getName());
             if (mClientConnectors != null) {
                 mClientConnectors.get(0).sendFile(file);
             }
@@ -372,7 +376,7 @@ public class BluetoothManager extends BroadcastReceiver {
         }
     }
 
-    public interface OnFileReceivedListener{
+    public interface OnFileReceivedListener {
         void onFileReceived(File file);
     }
 }

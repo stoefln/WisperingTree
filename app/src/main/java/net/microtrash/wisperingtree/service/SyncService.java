@@ -13,6 +13,7 @@ import com.ramimartin.multibluetooth.bus.ClientConnectionSuccess;
 import com.ramimartin.multibluetooth.bus.ServeurConnectionFail;
 import com.ramimartin.multibluetooth.bus.ServeurConnectionSuccess;
 
+import net.microtrash.wisperingtree.bus.FileSentToClient;
 import net.microtrash.wisperingtree.bus.LogMessage;
 import net.microtrash.wisperingtree.util.Logger;
 import net.microtrash.wisperingtree.util.LoggerInterface;
@@ -20,12 +21,15 @@ import net.microtrash.wisperingtree.util.Static;
 import net.microtrash.wisperingtree.util.Utils;
 
 import java.io.File;
+import java.util.Hashtable;
 
 import de.greenrobot.event.EventBus;
 
 public class SyncService extends Service {
     private BluetoothManager mBluetoothManager;
     private LoggerInterface mLogger;
+
+    private Hashtable<String, File> mFilesSent = new Hashtable<>();
 
     //private final IBinder mBinder = new LocalBinder();
 
@@ -66,7 +70,6 @@ public class SyncService extends Service {
             log("===> Bluetooth not aviable");
             mBluetoothManager.enableBluetooth();
         } else {
-            Utils.mkDir(Utils.getAppRootDir());
 
             if (BluetoothAdapter.getDefaultAdapter().getAddress().equals(Static.SERVER_MAC)) {
                 serverType();
@@ -149,16 +152,31 @@ public class SyncService extends Service {
 
     public void onServeurConnectionSuccess() {
         log("===> Serveur Connexion success !");
+        startFileTransfer();
+    }
+
+    private void startFileTransfer() {
         File rootDir = new File(Utils.getAppRootDir());
         for (File file : rootDir.listFiles()) {
-            mBluetoothManager.sendFile(file);
-            break;
+            String key = file.getName() + file.length();
+            File isTransferred = mFilesSent.get(key);
+            if(isTransferred == null) {
+                mBluetoothManager.sendFile(file);
+                break;
+            }
         }
     }
 
     public void onServerConnectionFail(String clientAdressConnectionFail) {
         log("===> Client connection lost! Mac: " + clientAdressConnectionFail);
         createServerForClient(Static.CLIENT_MAC1);
+    }
+
+    public void onEvent(FileSentToClient event){
+        File file = event.getFile();
+        String key = file.getName() + file.length();
+        mFilesSent.put(key, file);
+        startFileTransfer();
     }
 
     @Override

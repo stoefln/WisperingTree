@@ -3,12 +3,11 @@ package com.ramimartin.multibluetooth.bluetooth.server;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.util.Log;
 
-import com.ramimartin.multibluetooth.bus.BluetoothCommunicator;
 import com.ramimartin.multibluetooth.bus.ServeurConnectionFail;
 import com.ramimartin.multibluetooth.bus.ServeurConnectionSuccess;
 
+import net.microtrash.wisperingtree.bus.FileSentToClient;
 import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Protocol;
 
@@ -19,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.LinkedList;
 import java.util.UUID;
 
 import de.greenrobot.event.EventBus;
@@ -41,6 +41,7 @@ public class BluetoothServer implements Runnable {
     private OutputStreamWriter mOutputStreamWriter;
     private boolean mReceiveFile = false;
     private String mReceiveFilename;
+    private LinkedList<File> mFilesToSend = new LinkedList<>();
 
     public BluetoothServer(BluetoothAdapter bluetoothAdapter, String clientAddress, LoggerInterface logger) {
         mBluetoothAdapter = bluetoothAdapter;
@@ -64,24 +65,58 @@ public class BluetoothServer implements Runnable {
             EventBus.getDefault().post(new ServeurConnectionSuccess(mClientAddress));
 
             while (mRunning) {
-                final StringBuilder sb = new StringBuilder();
-                bytesRead = mInputStream.read(buffer);
-                if (bytesRead != -1) {
-                    String result = "";
-                    while ((bytesRead == bufferSize) && (buffer[bufferSize] != 0)) {
-                        result = result + new String(buffer, 0, bytesRead);
-                        bytesRead = mInputStream.read(buffer);
-                    }
-                    result = result + new String(buffer, 0, bytesRead);
-                    sb.append(result);
+                if(mFilesToSend.size() > 0) {
+                    File nextFile = mFilesToSend.getFirst();
+                    sendFileNow(nextFile);
+                    mFilesToSend.removeFirst();
                 }
-
-                EventBus.getDefault().post(new BluetoothCommunicator(sb.toString()));
-
+                Thread.sleep(500);
             }
         } catch (IOException e) {
-            Log.e("", "ERROR : " + e.getMessage());
+            mLogger.log("ERROR : " + e.getMessage());
             EventBus.getDefault().post(new ServeurConnectionFail(mClientAddress));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void sendFileNow(File file) {
+        int bufferSize = 1024;
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        byte[] buffer = new byte[bufferSize];
+        OutputStream outputStream = null;
+        int c = 0;
+
+        try {
+            outputStream = mSocket.getOutputStream();
+            long totalLength = file.length();
+            String command = Protocol.COMMAND_SEND_FILE + Protocol.SEPARATOR + file.getName() + Protocol.SEPARATOR + totalLength + Protocol.COMMAND_END;
+            outputStream.write(command.getBytes());
+            outputStream.flush();
+
+            mLogger.log("sent command", command);
+
+            long bytesWritten = 0;
+            while ((c = is.read(buffer, 0, buffer.length)) > 0) {
+                outputStream.write(buffer, 0, c);
+                outputStream.flush();
+                bytesWritten += c;
+                mLogger.log("sent "+bytesWritten+ " bytes");
+                Thread.sleep(1000);
+            }
+
+            mLogger.log("sent total of bytes", bytesWritten + "");
+            is.close();
+            EventBus.getDefault().post(new FileSentToClient(file));
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
@@ -97,38 +132,7 @@ public class BluetoothServer implements Runnable {
     }
 
     public void sendFile(File file) {
-        int bufferSize = 1024;
-        InputStream is = null;
-        try {
-            is = new FileInputStream(file);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        byte[] buffer = new byte[bufferSize];
-        OutputStream outputStream = null;
-        int c = 0;
-
-        try {
-            outputStream = mSocket.getOutputStream();
-            long totalLength = file.length();
-            String command = Protocol.COMMAND_SEND_FILE + Protocol.SEPARATOR + file.getName() + Protocol.SEPARATOR + totalLength;
-            outputStream.write(command.getBytes());
-            outputStream.flush();
-
-            long bytesWritten = 0;
-            while ((c = is.read(buffer, 0, buffer.length)) > 0) {
-                outputStream.write(buffer, 0, c);
-                outputStream.flush();
-                if(bytesWritten < 10000 || bytesWritten + 10000 > totalLength){
-                    mLogger.log(new String(buffer));
-                }
-                bytesWritten += c;
-            }
-            mLogger.log("sent total of bytes", bytesWritten+"");
-            is.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        mFilesToSend.add(file);
     }
 
     public String getClientAddress() {

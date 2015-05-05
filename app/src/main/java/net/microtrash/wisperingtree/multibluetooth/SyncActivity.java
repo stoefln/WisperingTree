@@ -63,8 +63,6 @@ public class SyncActivity extends BluetoothFragmentActivity implements Discovere
         mAdapter = new ArrayAdapter<String>(this, R.layout.item_console, mListLog);
         mListView.setAdapter(mAdapter);
 
-        Utils.mkDir(Utils.getAppRootDir());
-
         if(BluetoothAdapter.getDefaultAdapter().getAddress().equals(Static.SERVER_MAC)){
             serverType();
         } else{

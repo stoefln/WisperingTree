@@ -182,7 +182,6 @@ public class RecordFragment extends Fragment {
 
     private String getNextFilename() {
         String dirPath = Utils.getAppRootDir();
-        Utils.mkDir(dirPath);
         String nextfilename = dirPath + "/audiorecordtest" + mRecNum % 20 + ".wav";
         mRecNum++;
         return nextfilename;

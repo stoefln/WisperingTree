@@ -57,7 +57,8 @@ public class BluetoothClient implements Runnable {
     public BluetoothClient(BluetoothAdapter bluetoothAdapter, String adressMac, LoggerInterface logger) {
         mBluetoothAdapter = bluetoothAdapter;
         mAdressMac = adressMac;
-        mUuid = UUID.fromString("e0917680-d427-11e4-8830-" + bluetoothAdapter.getAddress().replace(":", ""));
+        String myAddress = bluetoothAdapter.getAddress();
+        mUuid = UUID.fromString("e0917680-d427-11e4-8830-" + myAddress.replace(":", ""));
         mLogger = logger;
     }
 
@@ -96,34 +97,35 @@ public class BluetoothClient implements Runnable {
 
             int bufferSize = 1024;
             int bytesRead = -1;
-            byte[] buffer = new byte[bufferSize];
+
+            byte[] dataBuffer = new byte[bufferSize];
+            byte[] stringBuffer = new byte[1];
 
             EventBus.getDefault().post(new ClientConnectionSuccess());
+            byte commandEnd = Protocol.COMMAND_END.getBytes()[0];
 
             while (mRunning) {
 
-                final StringBuilder sb = new StringBuilder();
+                String command = "";
                 if (!mReceiveFile) {
-                    bytesRead = mInputStream.read(buffer);
-                    if (bytesRead != -1) {
-                        String result = "";
-                        while ((bytesRead == bufferSize) && (buffer[bufferSize] != 0)) {
-                            result = result + new String(buffer, 0, bytesRead);
-                            bytesRead = mInputStream.read(buffer);
+                    while ((bytesRead = mInputStream.read(stringBuffer, 0, stringBuffer.length)) > 0) {
+                        //mLogger.log("receiving byte", ""+new String(stringBuffer, 0, bytesRead)+" command end:"+);
+                        if(stringBuffer[0] == commandEnd){
+                            break;
+                        }else {
+                            command += new String(stringBuffer, 0, bytesRead);
                         }
-                        result = result + new String(buffer, 0, bytesRead);
-                        sb.append(result);
                     }
+
                 } else {
-                    if (mLogger != null) {
-                        mLogger.log("receiving file", mReceiveFilename);
-                    }
+                    mLogger.log("receiving file", mReceiveFilename);
+
                     int c = 0;
                     long bRead = 0;
                     final String filePath = Utils.getAppRootDir() + "/" + mReceiveFilename;
                     OutputStream oos = new FileOutputStream(filePath);
 
-                    while (bRead < mReceiveFileLength && (c = mInputStream.read(buffer, 0, buffer.length)) > 0) {
+                    while (bRead < mReceiveFileLength && (c = mInputStream.read(dataBuffer, 0, dataBuffer.length)) > 0) {
                         if ((bRead + bufferSize) >= mReceiveFileLength) {
                             c = (int) (mReceiveFileLength - bRead);
                             mLogger.log("rest bytes", "" + c);
@@ -131,21 +133,18 @@ public class BluetoothClient implements Runnable {
                         /*if (bRead < 10000 || bRead + 10000 > mReceiveFileLength) {
                             mLogger.log(new String(buffer));
                         }*/
-                        oos.write(buffer, 0, c);
+                        oos.write(dataBuffer, 0, c);
                         oos.flush();
                         bRead += c;
                         mLogger.log("read " + bRead + " of " + mReceiveFileLength + " bytes");
+                        Thread.sleep(1000);
                     }
                     oos.close();
 
 
                     mLogger.log("saved file", mReceiveFilename);
 
-                    String filePath2 = Utils.getAppRootDir() + "/" + "audiotest.wav";
-                    copy(new File(filePath), new File(filePath2));
-
-                    mLogger.log("copied file");
-                    if(mOnFileReceivedListener != null){
+                    if (mOnFileReceivedListener != null) {
                         new Handler(Looper.getMainLooper()).post(new Runnable() {
                             @Override
                             public void run() {
@@ -158,18 +157,19 @@ public class BluetoothClient implements Runnable {
                     mReceiveFilename = null;
 
                 }
-                if (sb.toString().startsWith(Protocol.COMMAND_SEND_FILE)) {
+                if (command.startsWith(Protocol.COMMAND_SEND_FILE)) {
                     // "SEND_FILE:filename.ext"
                     try {
-                        String[] command = sb.toString().split(Protocol.SEPARATOR);
+                        String[] commandArray = command.split(Protocol.SEPARATOR);
+                        mLogger.log("New command:" + command);
                         mReceiveFile = true;
-                        mReceiveFilename = command[1];
-                        mReceiveFileLength = Long.parseLong(command[2]);
+                        mReceiveFilename = commandArray[1];
+                        mReceiveFileLength = Long.parseLong(commandArray[2]);
                     } catch (Exception e) {
-                        mLogger.log("Protocoll exception command could not be parsed:" + sb.toString());
+                        mLogger.log("Protocoll exception command could not be parsed:" + command);
                     }
                 } else {
-                    EventBus.getDefault().post(new BluetoothCommunicator(sb.toString()));
+                    EventBus.getDefault().post(new BluetoothCommunicator(command));
                 }
 
             }
@@ -177,6 +177,8 @@ public class BluetoothClient implements Runnable {
             Log.e("", "===> Client run");
             e.printStackTrace();
             EventBus.getDefault().post(new ClientConnectionFail());
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
