@@ -4,4 +4,5 @@ public class Protocol {
     public static final String COMMAND_SEND_FILE = "SEND_FILE";
     public static final String SEPARATOR = ":";
     public static final String COMMAND_END = ";";
+    public static final long TRANSFER_DELAY_MS = 100;
 }

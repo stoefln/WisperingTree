@@ -9,8 +9,8 @@ import android.view.ViewGroup;
 import android.widget.SeekBar;
 
 import net.microtrash.wisperingtree.R;
-import net.microtrash.wisperingtree.Sample;
-import net.microtrash.wisperingtree.SamplePlayer;
+import net.microtrash.wisperingtree.audio.Sample;
+import net.microtrash.wisperingtree.audio.SamplePlayer;
 import net.microtrash.wisperingtree.util.Utils;
 
 import java.io.File;
@@ -89,7 +89,7 @@ public class PlayFragment extends Fragment {
             Sample s = new Sample(file);
             mSamplePlayer.addSample(s);
         }
-//        mSamplePlayer.start();
+        //mSamplePlayer.start();
     }
 
     @Override

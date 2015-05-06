@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 
 import com.ramimartin.multibluetooth.bluetooth.mananger.BluetoothManager;
 import com.ramimartin.multibluetooth.bus.ClientConnectionFail;
@@ -14,6 +15,7 @@ import com.ramimartin.multibluetooth.bus.ServeurConnectionFail;
 import com.ramimartin.multibluetooth.bus.ServeurConnectionSuccess;
 
 import net.microtrash.wisperingtree.bus.FileSentToClient;
+import net.microtrash.wisperingtree.bus.FileSentToClientFail;
 import net.microtrash.wisperingtree.bus.LogMessage;
 import net.microtrash.wisperingtree.util.Logger;
 import net.microtrash.wisperingtree.util.LoggerInterface;
@@ -30,6 +32,7 @@ public class SyncService extends Service {
     private LoggerInterface mLogger;
 
     private Hashtable<String, File> mFilesSent = new Hashtable<>();
+    private boolean mRunning = false;
 
     //private final IBinder mBinder = new LocalBinder();
 
@@ -41,11 +44,20 @@ public class SyncService extends Service {
     @Override
     public void onStart(Intent intent, int startId) {
         super.onStart(intent, startId);
+        mRunning = true;
         mLogger = Logger.getInstance();
         mLogger.setOnLogListener(new LoggerInterface() {
+
+            Handler mHandler = new Handler(Looper.getMainLooper());
+
             @Override
-            public void log(String message) {
-                EventBus.getDefault().post(new LogMessage(message));
+            public void log(final String message) {
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        EventBus.getDefault().post(new LogMessage(message));
+                    }
+                });
             }
 
             @Override
@@ -73,25 +85,20 @@ public class SyncService extends Service {
 
             if (BluetoothAdapter.getDefaultAdapter().getAddress().equals(Static.SERVER_MAC)) {
                 serverType();
+                startFileTransfer();
             } else {
                 clientType();
             }
         }
-
     }
-
 
     public void serverType() {
         log("===> Start Server ! Your mac address : " + mBluetoothManager.getYourBtMacAddress());
-        //setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_3600_SEC);
+        setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_3600_SEC);
         selectServerMode();
-
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                createServerForClient(Static.CLIENT_MAC1);
-            }
-        }, 2000);
+        createServerForClient(Static.CLIENT_MAC1);
+        createServerForClient(Static.CLIENT_MAC2);
+        createServerForClient(Static.CLIENT_MAC3);
     }
 
     private void log(String s) {
@@ -101,7 +108,7 @@ public class SyncService extends Service {
 
     public void clientType() {
         log("===> Start Client ! Your mac address : " + mBluetoothManager.getYourBtMacAddress());
-        //setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_120_SEC);
+        setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_120_SEC);
         selectClientMode();
 
         new Handler().postDelayed(new Runnable() {
@@ -145,31 +152,37 @@ public class SyncService extends Service {
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                clientConnect();
+                if (mRunning) {
+                    clientConnect();
+                }
             }
         }, 1000);
     }
 
     public void onServeurConnectionSuccess() {
         log("===> Serveur Connexion success !");
-        startFileTransfer();
     }
 
     private void startFileTransfer() {
-        File rootDir = new File(Utils.getAppRootDir());
-        for (File file : rootDir.listFiles()) {
-            String key = file.getName() + file.length();
-            File isTransferred = mFilesSent.get(key);
-            if(isTransferred == null) {
-                mBluetoothManager.sendFile(file);
-                break;
+        if(mBluetoothManager.getConnectedClientNum() > 0) {
+            File rootDir = new File(Utils.getAppRootDir());
+            for (File file : rootDir.listFiles()) {
+                String key = file.getName() + file.length();
+                File isTransferred = mFilesSent.get(key);
+                if (isTransferred == null) {
+                    mBluetoothManager.sendFileToRandomClient(file);
+                    break;
+                }
             }
+        } else {
+            log("No clients connected. Next try in 5 sek...");
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    startFileTransfer();
+                }
+            }, 5000);
         }
-    }
-
-    public void onServerConnectionFail(String clientAdressConnectionFail) {
-        log("===> Client connection lost! Mac: " + clientAdressConnectionFail);
-        createServerForClient(Static.CLIENT_MAC1);
     }
 
     public void onEvent(FileSentToClient event){
@@ -179,9 +192,23 @@ public class SyncService extends Service {
         startFileTransfer();
     }
 
+    public void onEvent(FileSentToClientFail event){
+        startFileTransfer();
+    }
+
+    public void onServerConnectionFail(String clientAdressConnectionFail) {
+        log("===> Client connection lost! Mac: " + clientAdressConnectionFail);
+        if(mRunning) {
+            createServerForClient(clientAdressConnectionFail);
+            // check for other clients who could pick up file transfers
+            startFileTransfer();
+        }
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
+        mRunning = false;
         EventBus.getDefault().unregister(this);
         mBluetoothManager.closeAllConnexion();
     }

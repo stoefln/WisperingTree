@@ -8,6 +8,8 @@ import com.ramimartin.multibluetooth.bus.ServeurConnectionFail;
 import com.ramimartin.multibluetooth.bus.ServeurConnectionSuccess;
 
 import net.microtrash.wisperingtree.bus.FileSentToClient;
+import net.microtrash.wisperingtree.bus.FileSentToClientFail;
+import net.microtrash.wisperingtree.bus.ProgressStatusChange;
 import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Protocol;
 
@@ -65,22 +67,26 @@ public class BluetoothServer implements Runnable {
             EventBus.getDefault().post(new ServeurConnectionSuccess(mClientAddress));
 
             while (mRunning) {
-                if(mFilesToSend.size() > 0) {
+                if (mFilesToSend.size() > 0) {
                     File nextFile = mFilesToSend.getFirst();
                     sendFileNow(nextFile);
+                    EventBus.getDefault().post(new FileSentToClient(nextFile));
                     mFilesToSend.removeFirst();
                 }
                 Thread.sleep(500);
             }
         } catch (IOException e) {
-            mLogger.log("ERROR : " + e.getMessage());
+            mRunning = false;
+            mLogger.log("ERROR: " + e.getMessage());
             EventBus.getDefault().post(new ServeurConnectionFail(mClientAddress));
+            EventBus.getDefault().post(new FileSentToClientFail());
         } catch (InterruptedException e) {
+            mLogger.log("ERROR: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    private void sendFileNow(File file) {
+    private void sendFileNow(File file) throws IOException, InterruptedException {
         int bufferSize = 1024;
         InputStream is = null;
         try {
@@ -92,32 +98,28 @@ public class BluetoothServer implements Runnable {
         OutputStream outputStream = null;
         int c = 0;
 
-        try {
-            outputStream = mSocket.getOutputStream();
-            long totalLength = file.length();
-            String command = Protocol.COMMAND_SEND_FILE + Protocol.SEPARATOR + file.getName() + Protocol.SEPARATOR + totalLength + Protocol.COMMAND_END;
-            outputStream.write(command.getBytes());
+        EventBus bus = EventBus.getDefault();
+
+        outputStream = mSocket.getOutputStream();
+        long totalLength = file.length();
+        String filename = file.getName();
+        String command = Protocol.COMMAND_SEND_FILE + Protocol.SEPARATOR + filename + Protocol.SEPARATOR + totalLength + Protocol.COMMAND_END;
+        outputStream.write(command.getBytes());
+        outputStream.flush();
+
+        //mLogger.log("sent command", command);
+
+        long bytesWritten = 0;
+        while ((c = is.read(buffer, 0, buffer.length)) > 0) {
+            outputStream.write(buffer, 0, c);
             outputStream.flush();
-
-            mLogger.log("sent command", command);
-
-            long bytesWritten = 0;
-            while ((c = is.read(buffer, 0, buffer.length)) > 0) {
-                outputStream.write(buffer, 0, c);
-                outputStream.flush();
-                bytesWritten += c;
-                mLogger.log("sent "+bytesWritten+ " bytes");
-                Thread.sleep(1000);
-            }
-
-            mLogger.log("sent total of bytes", bytesWritten + "");
-            is.close();
-            EventBus.getDefault().post(new FileSentToClient(file));
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            bytesWritten += c;
+            bus.post(new ProgressStatusChange((float) bytesWritten / (float) totalLength, filename + " / " + bytesWritten + " bytes"));
+            Thread.sleep(Protocol.TRANSFER_DELAY_MS);
         }
+
+        mLogger.log("sent total of bytes", bytesWritten + "");
+        is.close();
     }
 
     public void write(String message) {

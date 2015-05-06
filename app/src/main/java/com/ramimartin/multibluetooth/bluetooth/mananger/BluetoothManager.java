@@ -86,6 +86,10 @@ public class BluetoothManager extends BroadcastReceiver {
         //setTimeDiscoverable(BLUETOOTH_TIME_DICOVERY_300_SEC);
     }
 
+    public int getConnectedClientNum() {
+        return mClientConnectors == null ? 0 : mClientConnectors.size();
+    }
+
     public void selectServerMode() {
         //startDiscovery();
         mType = TypeBluetooth.Server;
@@ -135,18 +139,18 @@ public class BluetoothManager extends BroadcastReceiver {
         if (mNbrClientConnection == getNbrClientMax()) {
             //resetWaitingThreadServer();
         }
-        Log.e("", "===> incrementNbrConnection mNbrClientConnection : " + mNbrClientConnection);
+        Log.e("", "incrementNbrConnection mNbrClientConnection : " + mNbrClientConnection);
     }
 
     private void resetWaitingThreadServer() {
         for (Map.Entry<String, Thread> bluetoothThreadServerMap : mServeurThreadList.entrySet()) {
             if (mAdressListServerWaitingConnection.contains(bluetoothThreadServerMap.getKey())) {
-                Log.e("", "===> resetWaitingThreadServer Thread : " + bluetoothThreadServerMap.getKey());
+                Log.e("", "resetWaitingThreadServer Thread : " + bluetoothThreadServerMap.getKey());
                 bluetoothThreadServerMap.getValue().interrupt();
             }
         }
         for (Map.Entry<String, BluetoothServer> bluetoothServerMap : mServeurWaitingConnectionList.entrySet()) {
-            Log.e("", "===> resetWaitingThreadServer BluetoothServer : " + bluetoothServerMap.getKey());
+            Log.e("", "resetWaitingThreadServer BluetoothServer : " + bluetoothServerMap.getKey());
             bluetoothServerMap.getValue().closeConnection();
             //mServeurThreadList.remove(bluetoothServerMap.getKey());
         }
@@ -162,7 +166,7 @@ public class BluetoothManager extends BroadcastReceiver {
         if (mNbrClientConnection == 0) {
             isConnected = false;
         }
-        Log.e("", "===> decrementNbrConnection mNbrClientConnection : " + mNbrClientConnection);
+        Log.e("", "decrementNbrConnection mNbrClientConnection : " + mNbrClientConnection);
         setServerBluetoothName();
     }
 
@@ -200,10 +204,10 @@ public class BluetoothManager extends BroadcastReceiver {
             return;
         } else {
             if (mBluetoothAdapter.isEnabled() && isDiscovering()) {
-                Log.e("", "===> mBluetoothAdapter.isDiscovering()");
+                Log.e("", "mBluetoothAdapter.isDiscovering()");
                 return;
             } else {
-                Log.e("", "===> startDiscovery- not supported- check code!");
+                Log.e("", "startDiscovery- not supported- check code!");
                 Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
                 discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, mTimeDiscoverable);
                 //mActivity.startActivityForResult(discoverableIntent, REQUEST_DISCOVERABLE_CODE);
@@ -239,7 +243,6 @@ public class BluetoothManager extends BroadcastReceiver {
             setServerWaitingConnection(address, mBluetoothServer, threadServer);
             IntentFilter bondStateIntent = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
             mActivity.registerReceiver(this, bondStateIntent);
-            mLogger.log("===> createServer address : " + address);
         }
     }
 
@@ -248,7 +251,7 @@ public class BluetoothManager extends BroadcastReceiver {
             if (addressClientConnected.equals(bluetoothServerMap.getValue().getClientAddress())) {
                 mClientConnectors.add(bluetoothServerMap.getValue());
                 incrementNbrConnection();
-                mLogger.log("===> onServerConnectionSuccess address : " + addressClientConnected);
+                mLogger.log("onServerConnectionSuccess address : " + addressClientConnected);
                 return;
             }
         }
@@ -266,7 +269,7 @@ public class BluetoothManager extends BroadcastReceiver {
                 mServeurThreadList.remove(addressClientConnectionFailed);
                 mAdressListServerWaitingConnection.remove(addressClientConnectionFailed);
                 decrementNbrConnection();
-                mLogger.log("===> onServerConnectionFailed address : " + addressClientConnectionFailed);
+                mLogger.log("onServerConnectionFailed address : " + addressClientConnectionFailed);
                 return;
             }
             index++;
@@ -290,15 +293,16 @@ public class BluetoothManager extends BroadcastReceiver {
      * fires a FileSentToClient event as soon as the transfer is done
      * @param file
      */
-    public void sendFile(File file) {
+    public boolean sendFileToRandomClient(File file) {
 
-        if (mType != null && isConnected) {
-            mLogger.log("===> Sending file", file.getName());
-            if (mClientConnectors != null) {
-                mClientConnectors.get(0).sendFile(file);
-            }
+        if (mType != null && isConnected && mClientConnectors != null && mClientConnectors.size() > 0) {
+            int client = (int) Math.round(Math.random() * (mClientConnectors.size() - 1));
+            mLogger.log("Sending file " + file.getName() + " to client " + client);
+            mClientConnectors.get(client).sendFile(file);
+            return true;
         } else {
-            mLogger.log("Can't send file, bluetoothmanager is not connected!");
+            mLogger.log("Can't send file, no clients connected");
+            return false;
         }
     }
 
@@ -313,13 +317,13 @@ public class BluetoothManager extends BroadcastReceiver {
             }
         }
         if (intent.getAction().equals(BluetoothDevice.ACTION_BOND_STATE_CHANGED)) {
-            //Log.e("", "===> ACTION_BOND_STATE_CHANGED");
+            //Log.e("", "ACTION_BOND_STATE_CHANGED");
             int prevBondState = intent.getIntExtra(BluetoothDevice.EXTRA_PREVIOUS_BOND_STATE, -1);
             int bondState = intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, -1);
             if (prevBondState == BluetoothDevice.BOND_BONDING) {
                 // check for both BONDED and NONE here because in some error cases the bonding fails and we need to fail gracefully.
                 if (bondState == BluetoothDevice.BOND_BONDED || bondState == BluetoothDevice.BOND_NONE) {
-                    //Log.e("", "===> BluetoothDevice.BOND_BONDED");
+                    //Log.e("", "BluetoothDevice.BOND_BONDED");
                     EventBus.getDefault().post(new BondedDevice());
                 }
             }

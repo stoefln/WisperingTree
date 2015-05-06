@@ -12,6 +12,7 @@ import com.ramimartin.multibluetooth.bus.BluetoothCommunicator;
 import com.ramimartin.multibluetooth.bus.ClientConnectionFail;
 import com.ramimartin.multibluetooth.bus.ClientConnectionSuccess;
 
+import net.microtrash.wisperingtree.bus.ProgressStatusChange;
 import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Protocol;
 import net.microtrash.wisperingtree.util.Utils;
@@ -104,15 +105,16 @@ public class BluetoothClient implements Runnable {
             EventBus.getDefault().post(new ClientConnectionSuccess());
             byte commandEnd = Protocol.COMMAND_END.getBytes()[0];
 
+            EventBus bus = EventBus.getDefault();
             while (mRunning) {
 
                 String command = "";
                 if (!mReceiveFile) {
-                    while ((bytesRead = mInputStream.read(stringBuffer, 0, stringBuffer.length)) > 0) {
+                    while (mRunning && (bytesRead = mInputStream.read(stringBuffer, 0, stringBuffer.length)) > 0) {
                         //mLogger.log("receiving byte", ""+new String(stringBuffer, 0, bytesRead)+" command end:"+);
-                        if(stringBuffer[0] == commandEnd){
+                        if (stringBuffer[0] == commandEnd) {
                             break;
-                        }else {
+                        } else {
                             command += new String(stringBuffer, 0, bytesRead);
                         }
                     }
@@ -125,10 +127,9 @@ public class BluetoothClient implements Runnable {
                     final String filePath = Utils.getAppRootDir() + "/" + mReceiveFilename;
                     OutputStream oos = new FileOutputStream(filePath);
 
-                    while (bRead < mReceiveFileLength && (c = mInputStream.read(dataBuffer, 0, dataBuffer.length)) > 0) {
+                    while (mRunning && bRead < mReceiveFileLength && (c = mInputStream.read(dataBuffer, 0, dataBuffer.length)) > 0) {
                         if ((bRead + bufferSize) >= mReceiveFileLength) {
                             c = (int) (mReceiveFileLength - bRead);
-                            mLogger.log("rest bytes", "" + c);
                         }
                         /*if (bRead < 10000 || bRead + 10000 > mReceiveFileLength) {
                             mLogger.log(new String(buffer));
@@ -136,8 +137,8 @@ public class BluetoothClient implements Runnable {
                         oos.write(dataBuffer, 0, c);
                         oos.flush();
                         bRead += c;
-                        mLogger.log("read " + bRead + " of " + mReceiveFileLength + " bytes");
-                        Thread.sleep(1000);
+                        bus.post(new ProgressStatusChange((float) bRead / (float) mReceiveFileLength, mReceiveFilename+" / "+bRead+" bytes"));
+                        Thread.sleep(Protocol.TRANSFER_DELAY_MS);
                     }
                     oos.close();
 
@@ -161,7 +162,6 @@ public class BluetoothClient implements Runnable {
                     // "SEND_FILE:filename.ext"
                     try {
                         String[] commandArray = command.split(Protocol.SEPARATOR);
-                        mLogger.log("New command:" + command);
                         mReceiveFile = true;
                         mReceiveFilename = commandArray[1];
                         mReceiveFileLength = Long.parseLong(commandArray[2]);

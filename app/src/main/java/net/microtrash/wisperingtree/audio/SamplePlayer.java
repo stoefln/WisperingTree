@@ -1,4 +1,4 @@
-package net.microtrash.wisperingtree;
+package net.microtrash.wisperingtree.audio;
 
 import android.content.Context;
 import android.os.Handler;
