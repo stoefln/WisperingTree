@@ -1,11 +1,11 @@
-package com.ramimartin.multibluetooth.bluetooth.server;
+package net.microtrash.wisperingtree.bluetooth.server;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 
-import com.ramimartin.multibluetooth.bus.ServeurConnectionFail;
-import com.ramimartin.multibluetooth.bus.ServeurConnectionSuccess;
+import net.microtrash.wisperingtree.bus.ServeurConnectionFail;
+import net.microtrash.wisperingtree.bus.ServeurConnectionSuccess;
 
 import net.microtrash.wisperingtree.bus.FileSentToClient;
 import net.microtrash.wisperingtree.bus.FileSentToClientFail;

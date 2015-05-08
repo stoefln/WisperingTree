@@ -13,4 +13,6 @@ public class Static {
     public static final String CLIENT_MAC2 = "98:0D:2E:C0:30:86";
     // S4
     public static final String CLIENT_MAC3 = "D8:90:E8:FB:D8:C2";
+    // S3
+    public static final String CLIENT_MAC4 = "94:D7:71:E3:E6:61";
 }

@@ -1,4 +1,4 @@
-package com.ramimartin.multibluetooth.bluetooth.client;
+package net.microtrash.wisperingtree.bluetooth.client;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -7,11 +7,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
-import com.ramimartin.multibluetooth.bluetooth.mananger.BluetoothManager;
-import com.ramimartin.multibluetooth.bus.BluetoothCommunicator;
-import com.ramimartin.multibluetooth.bus.ClientConnectionFail;
-import com.ramimartin.multibluetooth.bus.ClientConnectionSuccess;
-
+import net.microtrash.wisperingtree.bluetooth.mananger.BluetoothManager;
+import net.microtrash.wisperingtree.bus.BluetoothCommunicator;
+import net.microtrash.wisperingtree.bus.ClientConnectionFail;
+import net.microtrash.wisperingtree.bus.ClientConnectionSuccess;
 import net.microtrash.wisperingtree.bus.ProgressStatusChange;
 import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Protocol;
@@ -117,6 +116,9 @@ public class BluetoothClient implements Runnable {
                         } else {
                             command += new String(stringBuffer, 0, bytesRead);
                         }
+                        if(command.length() > 500){
+                            throw new RuntimeException("Command too long! Command: "+command);
+                        }
                     }
 
                 } else {
@@ -141,9 +143,6 @@ public class BluetoothClient implements Runnable {
                         Thread.sleep(Protocol.TRANSFER_DELAY_MS);
                     }
                     oos.close();
-
-
-                    mLogger.log("saved file", mReceiveFilename);
 
                     if (mOnFileReceivedListener != null) {
                         new Handler(Looper.getMainLooper()).post(new Runnable() {

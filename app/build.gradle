@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+repositories {
+    mavenCentral()
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+}
+
+
 android {
     compileSdkVersion 22
     buildToolsVersion "22.0.0"
@@ -25,4 +31,5 @@ dependencies {
     compile 'com.jakewharton:butterknife:6.0.0'
     compile 'de.greenrobot:eventbus:2.2.0'
     compile 'com.jakewharton:butterknife:6.0.0'
+    compile 'com.michaelpardo:activeandroid:3.1.0-SNAPSHOT'
 }

@@ -1,4 +1,4 @@
-package com.ramimartin.multibluetooth.bluetooth.client;
+package net.microtrash.wisperingtree.bluetooth.client;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;

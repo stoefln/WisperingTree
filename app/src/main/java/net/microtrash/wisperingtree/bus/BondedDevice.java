@@ -1,4 +1,4 @@
-package com.ramimartin.multibluetooth.bus;
+package net.microtrash.wisperingtree.bus;
 
 /**
  * Created by Rami MARTIN on 21/04/2014.

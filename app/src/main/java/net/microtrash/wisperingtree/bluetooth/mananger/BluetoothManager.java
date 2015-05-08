@@ -1,4 +1,4 @@
-package com.ramimartin.multibluetooth.bluetooth.mananger;
+package net.microtrash.wisperingtree.bluetooth.mananger;
 
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -8,9 +8,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.util.Log;
 
-import com.ramimartin.multibluetooth.bluetooth.client.BluetoothClient;
-import com.ramimartin.multibluetooth.bluetooth.server.BluetoothServer;
-import com.ramimartin.multibluetooth.bus.BondedDevice;
+import net.microtrash.wisperingtree.bluetooth.client.BluetoothClient;
+import net.microtrash.wisperingtree.bluetooth.server.BluetoothServer;
+import net.microtrash.wisperingtree.bus.BondedDevice;
 
 import net.microtrash.wisperingtree.util.LoggerInterface;
 

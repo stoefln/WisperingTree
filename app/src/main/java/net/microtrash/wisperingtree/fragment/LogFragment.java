@@ -12,11 +12,14 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.activeandroid.query.Select;
+
 import net.microtrash.wisperingtree.R;
 import net.microtrash.wisperingtree.bus.LogMessage;
 import net.microtrash.wisperingtree.bus.ProgressStatusChange;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.ButterKnife;
 import butterknife.InjectView;
@@ -51,12 +54,17 @@ public class LogFragment extends Fragment {
         return mRootView;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+
+    }
 
     /**
      * called by bus
      */
     public void onEvent(LogMessage message) {
-        mListLog.add(message.getText());
+        mListLog.add(message.toString());
         mAdapter.notifyDataSetChanged();
         if (mListView != null && !mTouchScrolling) {
             mListView.setSelection(mListView.getCount() - 1);
@@ -87,8 +95,7 @@ public class LogFragment extends Fragment {
             EventBus.getDefault().register(this);
 
         mListLog = new ArrayList<String>();
-        mAdapter = new ArrayAdapter<String>(getActivity(), R.layout.item_console, mListLog);
-        mListView.setAdapter(mAdapter);
+
         mListView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -101,6 +108,17 @@ public class LogFragment extends Fragment {
             }
         });
 
+        List<LogMessage> result = new Select()
+                .from(LogMessage.class)
+                .limit(2000).execute();
+
+
+        for (LogMessage logMessage : result) {
+            mListLog.add(logMessage.toString());
+        }
+        mAdapter = new ArrayAdapter<String>(getActivity(), R.layout.item_console, mListLog);
+        mListView.setAdapter(mAdapter);
+        mListView.setSelection(mListView.getCount() - 1);
     }
 
     @Override

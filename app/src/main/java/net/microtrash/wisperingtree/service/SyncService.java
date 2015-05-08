@@ -8,11 +8,11 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 
-import com.ramimartin.multibluetooth.bluetooth.mananger.BluetoothManager;
-import com.ramimartin.multibluetooth.bus.ClientConnectionFail;
-import com.ramimartin.multibluetooth.bus.ClientConnectionSuccess;
-import com.ramimartin.multibluetooth.bus.ServeurConnectionFail;
-import com.ramimartin.multibluetooth.bus.ServeurConnectionSuccess;
+import net.microtrash.wisperingtree.bluetooth.mananger.BluetoothManager;
+import net.microtrash.wisperingtree.bus.ClientConnectionFail;
+import net.microtrash.wisperingtree.bus.ClientConnectionSuccess;
+import net.microtrash.wisperingtree.bus.ServeurConnectionFail;
+import net.microtrash.wisperingtree.bus.ServeurConnectionSuccess;
 
 import net.microtrash.wisperingtree.bus.FileSentToClient;
 import net.microtrash.wisperingtree.bus.FileSentToClientFail;
@@ -99,6 +99,7 @@ public class SyncService extends Service {
         createServerForClient(Static.CLIENT_MAC1);
         createServerForClient(Static.CLIENT_MAC2);
         createServerForClient(Static.CLIENT_MAC3);
+        createServerForClient(Static.CLIENT_MAC4);
     }
 
     private void log(String s) {
@@ -185,7 +186,9 @@ public class SyncService extends Service {
             new Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    startFileTransfer();
+                    if(mRunning) {
+                        startFileTransfer();
+                    }
                 }
             }, 5000);
         }
@@ -200,6 +203,10 @@ public class SyncService extends Service {
 
     public void onEvent(FileSentToClientFail event){
         startFileTransfer();
+    }
+
+    public void onEvent(LogMessage message){
+        message.save();
     }
 
     public void onServerConnectionFail(String clientAdressConnectionFail) {
