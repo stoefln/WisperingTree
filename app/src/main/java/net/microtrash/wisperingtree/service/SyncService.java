@@ -79,7 +79,7 @@ public class SyncService extends Service {
         mBluetoothManager.setNbrClientMax(7);
 
         if (!mBluetoothManager.checkBluetoothAviability()) {
-            log("===> Bluetooth not aviable");
+            log("Bluetooth not aviable");
             mBluetoothManager.enableBluetooth();
         } else {
 
@@ -93,7 +93,7 @@ public class SyncService extends Service {
     }
 
     public void serverType() {
-        log("===> Start Server ! Your mac address : " + mBluetoothManager.getYourBtMacAddress());
+        log("Start Server ! Your mac address : " + mBluetoothManager.getYourBtMacAddress());
         setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_3600_SEC);
         selectServerMode();
         createServerForClient(Static.CLIENT_MAC1);
@@ -107,7 +107,7 @@ public class SyncService extends Service {
 
 
     public void clientType() {
-        log("===> Start Client ! Your mac address : " + mBluetoothManager.getYourBtMacAddress());
+        log("Start Client ! Your mac address : " + mBluetoothManager.getYourBtMacAddress());
         setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_120_SEC);
         selectClientMode();
 
@@ -125,7 +125,7 @@ public class SyncService extends Service {
         mBluetoothManager.setOnFileReceivedListener(new BluetoothManager.OnFileReceivedListener() {
             @Override
             public void onFileReceived(File file) {
-                log("===> on file received: " + file.getName());
+                log("on file received: " + file.getName());
                 sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)));
             }
         });
@@ -134,21 +134,21 @@ public class SyncService extends Service {
     }
 
     public void onDeviceSelectedForConnection(String addressMac) {
-        log("===> Connect to " + addressMac);
+        log("Connect to " + addressMac);
         createClient(addressMac);
     }
 
     void createServerForClient(String mac) {
-        log("===> Creating server for client address " + mac + "...");
+        log("Creating server for client address " + mac + "...");
         mBluetoothManager.createServer(mac);
     }
 
     public void onClientConnectionSuccess() {
-        log("===> Client Connexion success !");
+        log("Client Connexion success !");
     }
 
     public void onClientConnectionFail() {
-        log("===> Client Connexion fail !");
+        log("Client Connexion fail !");
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -160,7 +160,7 @@ public class SyncService extends Service {
     }
 
     public void onServeurConnectionSuccess() {
-        log("===> Serveur Connexion success !");
+        log("Serveur Connexion success !");
     }
 
     private void startFileTransfer() {
@@ -171,9 +171,15 @@ public class SyncService extends Service {
                 File isTransferred = mFilesSent.get(key);
                 if (isTransferred == null) {
                     mBluetoothManager.sendFileToRandomClient(file);
-                    break;
+                    return;
                 }
             }
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    startFileTransfer();
+                }
+            }, 1000);
         } else {
             log("No clients connected. Next try in 5 sek...");
             new Handler().postDelayed(new Runnable() {
@@ -197,7 +203,7 @@ public class SyncService extends Service {
     }
 
     public void onServerConnectionFail(String clientAdressConnectionFail) {
-        log("===> Client connection lost! Mac: " + clientAdressConnectionFail);
+        log("Client connection lost! Mac: " + clientAdressConnectionFail);
         if(mRunning) {
             createServerForClient(clientAdressConnectionFail);
             // check for other clients who could pick up file transfers
