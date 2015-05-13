@@ -15,7 +15,7 @@ import java.util.Locale;
 @Table(name = "LogMessage")
 public class LogMessage extends Model {
 
-    public static SimpleDateFormat dateFormat = new SimpleDateFormat("H:m:s", Locale.ENGLISH);
+    public static SimpleDateFormat dateFormat = new SimpleDateFormat("H:mm:ss", Locale.ENGLISH);
 
     @Column(name = "Text")
     private String mText;

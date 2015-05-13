@@ -11,12 +11,11 @@ import android.os.Looper;
 import net.microtrash.wisperingtree.bluetooth.mananger.BluetoothManager;
 import net.microtrash.wisperingtree.bus.ClientConnectionFail;
 import net.microtrash.wisperingtree.bus.ClientConnectionSuccess;
-import net.microtrash.wisperingtree.bus.ServeurConnectionFail;
-import net.microtrash.wisperingtree.bus.ServeurConnectionSuccess;
-
 import net.microtrash.wisperingtree.bus.FileSentToClient;
 import net.microtrash.wisperingtree.bus.FileSentToClientFail;
 import net.microtrash.wisperingtree.bus.LogMessage;
+import net.microtrash.wisperingtree.bus.ServeurConnectionFail;
+import net.microtrash.wisperingtree.bus.ServeurConnectionSuccess;
 import net.microtrash.wisperingtree.util.Logger;
 import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Static;
@@ -33,6 +32,7 @@ public class SyncService extends Service {
 
     private Hashtable<String, File> mFilesSent = new Hashtable<>();
     private boolean mRunning = false;
+    private Hashtable<String, String> mClients;
 
     //private final IBinder mBinder = new LocalBinder();
 
@@ -96,10 +96,24 @@ public class SyncService extends Service {
         log("Start Server ! Your mac address : " + mBluetoothManager.getYourBtMacAddress());
         setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_3600_SEC);
         selectServerMode();
-        createServerForClient(Static.CLIENT_MAC1);
-        createServerForClient(Static.CLIENT_MAC2);
-        createServerForClient(Static.CLIENT_MAC3);
-        createServerForClient(Static.CLIENT_MAC4);
+
+
+        for (String mac : getClients().keySet()) {
+            createServerForClient(getClients().get(mac), mac);
+        }
+    }
+
+    private Hashtable<String, String> getClients() {
+        if (mClients == null) {
+            mClients = new Hashtable<>();
+            mClients.put("40:B0:FA:F4:EC:B9", "LG-E430");
+            //mClients.put("HTC-ONE", "98:0D:2E:C0:30:86");
+            mClients.put("D8:90:E8:FB:D8:C2", "S4");
+            mClients.put("94:D7:71:E3:E6:61", "S3");
+            mClients.put("BE:CE:F6:77:27:B0", "HTC OPCV1");
+            mClients.put("AC:36:13:D9:C8:1E", "Galaxy S3 Mini");
+        }
+        return mClients;
     }
 
     private void log(String s) {
@@ -139,17 +153,17 @@ public class SyncService extends Service {
         createClient(addressMac);
     }
 
-    void createServerForClient(String mac) {
-        log("Creating server for client address " + mac + "...");
+    void createServerForClient(String name, String mac) {
+        log("Creating server for client \"" + name + "\" address " + mac + "...");
         mBluetoothManager.createServer(mac);
     }
 
     public void onClientConnectionSuccess() {
-        log("Client Connexion success !");
+        log("Client connection success !");
     }
 
     public void onClientConnectionFail() {
-        log("Client Connexion fail !");
+        log("Client connection fail !");
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -157,7 +171,7 @@ public class SyncService extends Service {
                     clientConnect();
                 }
             }
-        }, 1000);
+        }, 5000);
     }
 
     public void onServeurConnectionSuccess() {
@@ -165,9 +179,13 @@ public class SyncService extends Service {
     }
 
     private void startFileTransfer() {
-        if(mBluetoothManager.getConnectedClientNum() > 0) {
+        if (mBluetoothManager.getConnectedClientNum() > 0) {
             File rootDir = new File(Utils.getAppRootDir());
+            int i = 0;
             for (File file : rootDir.listFiles()) {
+                if(!file.getName().endsWith(".wav") && !file.getName().endsWith(".mp3")){
+                    continue;
+                }
                 String key = file.getName() + file.length();
                 File isTransferred = mFilesSent.get(key);
                 if (isTransferred == null) {
@@ -175,18 +193,21 @@ public class SyncService extends Service {
                     return;
                 }
             }
-            new Handler().postDelayed(new Runnable() {
+            log("Files transferred, check again...");
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    startFileTransfer();
+                    if (mRunning) {
+                        startFileTransfer();
+                    }
                 }
-            }, 1000);
+            }, 4000);
         } else {
             log("No clients connected. Next try in 5 sek...");
             new Handler().postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    if(mRunning) {
+                    if (mRunning) {
                         startFileTransfer();
                     }
                 }
@@ -194,26 +215,27 @@ public class SyncService extends Service {
         }
     }
 
-    public void onEvent(FileSentToClient event){
+    public void onEvent(FileSentToClient event) {
         File file = event.getFile();
         String key = file.getName() + file.length();
         mFilesSent.put(key, file);
         startFileTransfer();
     }
 
-    public void onEvent(FileSentToClientFail event){
+    public void onEvent(FileSentToClientFail event) {
         startFileTransfer();
     }
 
-    public void onEvent(LogMessage message){
+    public void onEvent(LogMessage message) {
         message.save();
     }
 
     public void onServerConnectionFail(String clientAdressConnectionFail) {
         log("Client connection lost! Mac: " + clientAdressConnectionFail);
-        if(mRunning) {
-            createServerForClient(clientAdressConnectionFail);
-            // check for other clients who could pick up file transfers
+        if (mRunning) {
+            String clientName = getClients().get(clientAdressConnectionFail);
+            createServerForClient(clientName, clientAdressConnectionFail);
+            // check for other mClients who could pick up file transfers
             startFileTransfer();
         }
     }

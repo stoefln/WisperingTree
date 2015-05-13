@@ -107,7 +107,7 @@ public class BluetoothServer implements Runnable {
         outputStream.write(command.getBytes());
         outputStream.flush();
 
-        //mLogger.log("sent command", command);
+        mLogger.log("sent command", command);
 
         long bytesWritten = 0;
         while ((c = is.read(buffer, 0, buffer.length)) > 0) {

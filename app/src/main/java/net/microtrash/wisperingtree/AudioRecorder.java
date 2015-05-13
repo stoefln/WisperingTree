@@ -120,7 +120,7 @@ public class AudioRecorder
 			}
 			catch (IOException e)
 			{
-				Log.e(AudioRecorder.class.getName(), "Error occured in updateListener, recording is aborted");
+				log("Error occured in updateListener, recording is aborted");
 				stop();
 			}
 		}
@@ -130,7 +130,11 @@ public class AudioRecorder
 			// NOT USED
 		}
 	};
-	
+
+	private void log(String message) {
+		Log.e(AudioRecorder.class.getName(), message);
+	}
+
 	/** 
 	 * 
 	 * 
@@ -199,11 +203,11 @@ public class AudioRecorder
 		{
 			if (e.getMessage() != null)
 			{
-				Log.e(AudioRecorder.class.getName(), e.getMessage());
+				log(e.getMessage());
 			}
 			else
 			{
-				Log.e(AudioRecorder.class.getName(), "Unknown error occured while initializing recording");
+				log("Unknown error occured while initializing recording");
 			}
 			state = State.ERROR;
 		}
@@ -230,11 +234,11 @@ public class AudioRecorder
 		{
 			if (e.getMessage() != null)
 			{
-				Log.e(AudioRecorder.class.getName(), e.getMessage());
+				log(e.getMessage());
 			}
 			else
 			{
-				Log.e(AudioRecorder.class.getName(), "Unknown error occured while setting output path");
+				log("Unknown error occured while setting output path");
 			}
 			state = State.ERROR;
 		}
@@ -318,7 +322,7 @@ public class AudioRecorder
 					}
 					else
 					{
-						Log.e(AudioRecorder.class.getName(), "prepare() method called on uninitialized recorder");
+						log("prepare() method called on uninitialized recorder");
 						state = State.ERROR;
 					}
 				}
@@ -330,7 +334,7 @@ public class AudioRecorder
 			}
 			else
 			{
-				Log.e(AudioRecorder.class.getName(), "prepare() method called on illegal state");
+				log("prepare() method called on illegal state");
 				release();
 				state = State.ERROR;
 			}
@@ -339,11 +343,11 @@ public class AudioRecorder
 		{
 			if (e.getMessage() != null)
 			{
-				Log.e(AudioRecorder.class.getName(), e.getMessage());
+				log(e.getMessage());
 			}
 			else
 			{
-				Log.e(AudioRecorder.class.getName(), "Unknown error occured in prepare()");
+				log("Unknown error occured in prepare()");
 			}
 			state = State.ERROR;
 		}
@@ -371,7 +375,7 @@ public class AudioRecorder
 				}
 				catch (IOException e)
 				{
-					Log.e(AudioRecorder.class.getName(), "I/O exception occured while closing output file");
+					log("I/O exception occured while closing output file");
 				}
 				(new File(fPath)).delete();
 			}
@@ -426,7 +430,7 @@ public class AudioRecorder
 		}
 		catch (Exception e)
 		{
-			Log.e(AudioRecorder.class.getName(), e.getMessage());
+			log(e.getMessage());
 			state = State.ERROR;
 		}
 	}
@@ -456,7 +460,7 @@ public class AudioRecorder
 		}
 		else
 		{
-			Log.e(AudioRecorder.class.getName(), "start() called on illegal state");
+			log("start() called on illegal state");
 			state = State.ERROR;
 		}
 	}
@@ -480,7 +484,7 @@ public class AudioRecorder
 				try
 				{
 					fWriter.seek(4); // Write size to RIFF header
-					fWriter.writeInt(Integer.reverseBytes(36+payloadSize));
+					fWriter.writeInt(Integer.reverseBytes(36 + payloadSize));
 				
 					fWriter.seek(40); // Write size to Subchunk2Size field
 					fWriter.writeInt(Integer.reverseBytes(payloadSize));
@@ -489,7 +493,7 @@ public class AudioRecorder
 				}
 				catch(IOException e)
 				{
-					Log.e(AudioRecorder.class.getName(), "I/O exception occured while closing output file");
+					log("I/O exception occured while closing output file");
 					state = State.ERROR;
 				}
 			}
@@ -501,7 +505,7 @@ public class AudioRecorder
 		}
 		else
 		{
-			Log.e(AudioRecorder.class.getName(), "stop() called on illegal state");
+			log("stop() called on illegal state");
 			state = State.ERROR;
 		}
 	}
@@ -516,7 +520,5 @@ public class AudioRecorder
 		return (short)(argB1 | (argB2 << 8));
 	}
 
-	public interface AudioRecorderListener{
 
-	}
 }

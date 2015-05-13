@@ -117,7 +117,10 @@ public class BluetoothClient implements Runnable {
                             command += new String(stringBuffer, 0, bytesRead);
                         }
                         if(command.length() > 500){
-                            throw new RuntimeException("Command too long! Command: "+command);
+                            String message = "Command too long! Command: "+command;
+                            mLogger.log(message);
+                            EventBus.getDefault().post(new ClientConnectionFail());
+                            return;
                         }
                     }
 
@@ -143,7 +146,7 @@ public class BluetoothClient implements Runnable {
                         Thread.sleep(Protocol.TRANSFER_DELAY_MS);
                     }
                     oos.close();
-
+                    mLogger.log("read "+bRead+" bytes");
                     if (mOnFileReceivedListener != null) {
                         new Handler(Looper.getMainLooper()).post(new Runnable() {
                             @Override
@@ -160,6 +163,7 @@ public class BluetoothClient implements Runnable {
                 if (command.startsWith(Protocol.COMMAND_SEND_FILE)) {
                     // "SEND_FILE:filename.ext"
                     try {
+                        mLogger.log("command: ", command);
                         String[] commandArray = command.split(Protocol.SEPARATOR);
                         mReceiveFile = true;
                         mReceiveFilename = commandArray[1];

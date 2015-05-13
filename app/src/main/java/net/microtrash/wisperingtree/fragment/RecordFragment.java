@@ -4,6 +4,8 @@ import android.media.AudioFormat;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.SwitchCompat;
 import android.util.Log;
@@ -14,15 +16,21 @@ import android.widget.CompoundButton;
 
 import net.microtrash.wisperingtree.AudioRecorder;
 import net.microtrash.wisperingtree.R;
+import net.microtrash.wisperingtree.bus.LogMessage;
 import net.microtrash.wisperingtree.service.SyncService;
+import net.microtrash.wisperingtree.util.Logger;
+import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Profiler;
 import net.microtrash.wisperingtree.util.Static;
 import net.microtrash.wisperingtree.util.Tools;
 import net.microtrash.wisperingtree.util.Utils;
 import net.microtrash.wisperingtree.view.RangeSeekBar;
 
+import java.io.File;
+
 import butterknife.ButterKnife;
 import butterknife.InjectView;
+import de.greenrobot.event.EventBus;
 
 
 public class RecordFragment extends Fragment {
@@ -50,6 +58,7 @@ public class RecordFragment extends Fragment {
     private Long mLastTimeAboveMin = null;
     private long mSampleStartTime;
     private boolean mSampling = false;
+    private LoggerInterface mLogger;
 
     /**
      * Returns a new instance of this fragment for the given section
@@ -63,6 +72,36 @@ public class RecordFragment extends Fragment {
     }
 
     public RecordFragment() {
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mLogger = Logger.getInstance();
+        mLogger.setOnLogListener(new LoggerInterface() {
+
+            Handler mHandler = new Handler(Looper.getMainLooper());
+
+            @Override
+            public void log(final String message) {
+                mHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        EventBus.getDefault().post(new LogMessage(message));
+                    }
+                });
+            }
+
+            @Override
+            public void log(String key, String value) {
+                EventBus.getDefault().post(new LogMessage(key + ": " + value));
+            }
+
+            @Override
+            public void setOnLogListener(LoggerInterface logListener) {
+
+            }
+        });
     }
 
     @Override
@@ -161,11 +200,22 @@ public class RecordFragment extends Fragment {
     }
 
     private void stopSampling() {
-        Log.v(TAG, "StopSampling. Filelength: " + (float) (System.currentTimeMillis() - mSampleStartTime) / 1000f + " sec. Filename: " + mRecorder.getOutputFile());
+        mLogger.log("StopSampling. Filelength: " + (float) (System.currentTimeMillis() - mSampleStartTime) / 1000f + " sec. Filename: " + mRecorder.getOutputFile());
+        final File outputFile = new File(mRecorder.getOutputFile());
         if (mRecorder != null && mLastTimeAboveMin != null) {
             try {
                 mRecorder.stop();
                 mRecorder.release();
+
+                // delay to make sure file is written completely
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        File newFile = new File(outputFile.getPath().replace(".tmp", ".wav"));
+                        outputFile.renameTo(newFile);
+                        mLogger.log("new File created", newFile.getName());
+                    }
+                }, 1000);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -182,7 +232,7 @@ public class RecordFragment extends Fragment {
 
     private String getNextFilename() {
         String dirPath = Utils.getAppRootDir();
-        String nextfilename = dirPath + "/audiorecordtest" + mRecNum % 20 + ".wav";
+        String nextfilename = dirPath + "/audiorecordtest" + mRecNum % Static.MAX_FILES + ".tmp";
         mRecNum++;
         return nextfilename;
     }
@@ -208,7 +258,7 @@ public class RecordFragment extends Fragment {
         int i = 0;
 
         do {
-            Log.v(TAG, "initializing with: " + sampleRates[0][i]);
+            mLogger.log("initializing with: " + sampleRates[0][i]);
             mRecorder = new AudioRecorder(true, MediaRecorder.AudioSource.MIC, sampleRates[0][i], AudioFormat.CHANNEL_CONFIGURATION_MONO,
                     AudioFormat.ENCODING_PCM_16BIT);
         }
