@@ -26,7 +26,7 @@ import java.util.Hashtable;
 
 import de.greenrobot.event.EventBus;
 
-public class SyncService extends Service {
+public class SyncService extends Service implements BluetoothManager.OnFileReceivedListener {
     private BluetoothManager mBluetoothManager;
     private LoggerInterface mLogger;
 
@@ -90,15 +90,15 @@ public class SyncService extends Service {
         } else {
 
             if (BluetoothAdapter.getDefaultAdapter().getAddress().equals(Static.SERVER_MAC)) {
-                serverType();
+                startServer();
                 startFileTransfer();
             } else {
-                clientType();
+                startClient(0);
             }
         }
     }
 
-    public void serverType() {
+    public void startServer() {
         log("Start Server ! Your mac address : " + mBluetoothManager.getYourBtMacAddress());
         setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_3600_SEC);
         selectServerMode();
@@ -127,7 +127,7 @@ public class SyncService extends Service {
     }
 
 
-    public void clientType() {
+    public void startClient(int delay) {
         log("Start Client ! Your mac address : " + mBluetoothManager.getYourBtMacAddress());
         setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_120_SEC);
         selectClientMode();
@@ -135,28 +135,22 @@ public class SyncService extends Service {
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                clientConnect();
+                //showDiscoveredDevicesDialog();
+                if (mRunning) {
+                    mBluetoothManager.setOnFileReceivedListener(SyncService.this);
+                    log("Connect to " + Static.SERVER_MAC);
+                    createClient(Static.SERVER_MAC);
+                }
+
             }
-        }, 2000);
+        }, delay);
     }
 
 
-    private void clientConnect() {
-        //showDiscoveredDevicesDialog();
-        mBluetoothManager.setOnFileReceivedListener(new BluetoothManager.OnFileReceivedListener() {
-            @Override
-            public void onFileReceived(File file) {
-                log("on file received: " + file.getName());
-                sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)));
-            }
-        });
-
-        onDeviceSelectedForConnection(Static.SERVER_MAC);
-    }
-
-    public void onDeviceSelectedForConnection(String addressMac) {
-        log("Connect to " + addressMac);
-        createClient(addressMac);
+    @Override
+    public void onFileReceived(File file) {
+        log("on file received: " + file.getName());
+        sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)));
     }
 
     void createServerForClient(String name, String mac) {
@@ -173,7 +167,7 @@ public class SyncService extends Service {
         startFileTransfer();
     }
 
-    private void startFileTransfer(int delay){
+    private void startFileTransfer(int delay) {
         new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -185,14 +179,14 @@ public class SyncService extends Service {
     }
 
     private void startFileTransfer() {
-        if(mFilesCurrentlySending > 0){
+        if (mFilesCurrentlySending > 0) {
             return;
         }
         if (mBluetoothManager.getConnectedClientNum() > 0) {
             File rootDir = new File(Utils.getAppRootDir());
             int i = 0;
             for (File file : rootDir.listFiles()) {
-                if(!file.getName().endsWith(".wav") && !file.getName().endsWith(".mp3")){
+                if (!file.getName().endsWith(".wav") && !file.getName().endsWith(".mp3")) {
                     continue;
                 }
                 String key = file.getName() + file.length();
@@ -215,8 +209,8 @@ public class SyncService extends Service {
     public void onEvent(FileSentToClient event) {
         mFilesCurrentlySending--;
         File file = event.getFile();
-        log("file sent: "+ file.getName());
-        String key = file.getName() + file.length();
+        log("file sent: " + file.getName());
+        String key = file.getName() + file.lastModified();
         mFilesSent.put(key, file);
 
         startFileTransfer(1000);
@@ -313,7 +307,7 @@ public class SyncService extends Service {
         mBluetoothManager.disconnectClient();
         log("Client connection fail !");
         // try to reconnect
-       // clientConnect();
+        startClient(5000);
     }
 
     public void onEventMainThread(ServeurConnectionSuccess event) {
