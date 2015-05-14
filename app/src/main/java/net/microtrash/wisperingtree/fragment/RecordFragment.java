@@ -258,7 +258,7 @@ public class RecordFragment extends Fragment {
         int i = 0;
 
         do {
-            mLogger.log("initializing with: " + sampleRates[0][i]);
+            //mLogger.log("initializing with: " + sampleRates[0][i]);
             mRecorder = new AudioRecorder(true, MediaRecorder.AudioSource.MIC, sampleRates[0][i], AudioFormat.CHANNEL_CONFIGURATION_MONO,
                     AudioFormat.ENCODING_PCM_16BIT);
         }

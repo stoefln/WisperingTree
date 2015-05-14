@@ -12,6 +12,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.activeandroid.query.From;
 import com.activeandroid.query.Select;
 
 import net.microtrash.wisperingtree.R;
@@ -108,10 +109,16 @@ public class LogFragment extends Fragment {
             }
         });
 
-        List<LogMessage> result = new Select()
-                .from(LogMessage.class)
-                .limit(2000).execute();
+        int count = new Select()
+                .from(LogMessage.class).count();
 
+        final int limit = 2000;
+        From select = new Select()
+                .from(LogMessage.class).limit(limit);
+        if(count > limit){
+            select.offset(count - limit);
+        }
+        List<LogMessage> result = select.execute();
 
         for (LogMessage logMessage : result) {
             mListLog.add(logMessage.toString());

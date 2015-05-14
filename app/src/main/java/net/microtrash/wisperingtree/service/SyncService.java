@@ -110,7 +110,7 @@ public class SyncService extends Service {
             //mClients.put("HTC-ONE", "98:0D:2E:C0:30:86");
             mClients.put("D8:90:E8:FB:D8:C2", "S4");
             mClients.put("94:D7:71:E3:E6:61", "S3");
-            mClients.put("BE:CE:F6:77:27:B0", "HTC OPCV1");
+            mClients.put("B4:CE:F6:77:27:B0", "HTC OPCV1");
             mClients.put("AC:36:13:D9:C8:1E", "Galaxy S3 Mini");
         }
         return mClients;
@@ -204,7 +204,7 @@ public class SyncService extends Service {
             }, 4000);
         } else {
             log("No clients connected. Next try in 5 sek...");
-            new Handler().postDelayed(new Runnable() {
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     if (mRunning) {
@@ -217,9 +217,18 @@ public class SyncService extends Service {
 
     public void onEvent(FileSentToClient event) {
         File file = event.getFile();
+        log("file sent: "+ file.getName());
         String key = file.getName() + file.length();
         mFilesSent.put(key, file);
-        startFileTransfer();
+
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (mRunning) {
+                    startFileTransfer();
+                }
+            }
+        }, 1000);
     }
 
     public void onEvent(FileSentToClientFail event) {
@@ -243,9 +252,10 @@ public class SyncService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        log("Stopping service");
         mRunning = false;
-        EventBus.getDefault().unregister(this);
         mBluetoothManager.closeAllConnexion();
+        EventBus.getDefault().unregister(this);
     }
 
     public void setTimeDiscoverable(int timeInSec) {
