@@ -33,12 +33,18 @@ public class SyncService extends Service {
     private Hashtable<String, File> mFilesSent = new Hashtable<>();
     private boolean mRunning = false;
     private Hashtable<String, String> mClients;
+    private int mFilesCurrentlySending = 0;
 
     //private final IBinder mBinder = new LocalBinder();
 
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        return super.onStartCommand(intent, flags, startId);
     }
 
     @Override
@@ -164,21 +170,28 @@ public class SyncService extends Service {
 
     public void onClientConnectionFail() {
         log("Client connection fail !");
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (mRunning) {
-                    clientConnect();
-                }
-            }
-        }, 5000);
     }
 
     public void onServeurConnectionSuccess() {
         log("Serveur Connexion success !");
+        startFileTransfer();
+    }
+
+    private void startFileTransfer(int delay){
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (mRunning) {
+                    startFileTransfer();
+                }
+            }
+        }, delay);
     }
 
     private void startFileTransfer() {
+        if(mFilesCurrentlySending > 0){
+            return;
+        }
         if (mBluetoothManager.getConnectedClientNum() > 0) {
             File rootDir = new File(Utils.getAppRootDir());
             int i = 0;
@@ -190,49 +203,32 @@ public class SyncService extends Service {
                 File isTransferred = mFilesSent.get(key);
                 if (isTransferred == null) {
                     mBluetoothManager.sendFileToRandomClient(file);
+                    mFilesCurrentlySending++;
                     return;
                 }
             }
             log("Files transferred, check again...");
-            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (mRunning) {
-                        startFileTransfer();
-                    }
-                }
-            }, 4000);
+            startFileTransfer(4000);
+
         } else {
             log("No clients connected. Next try in 5 sek...");
-            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    if (mRunning) {
-                        startFileTransfer();
-                    }
-                }
-            }, 5000);
+            startFileTransfer(5000);
         }
     }
 
     public void onEvent(FileSentToClient event) {
+        mFilesCurrentlySending--;
         File file = event.getFile();
         log("file sent: "+ file.getName());
         String key = file.getName() + file.length();
         mFilesSent.put(key, file);
 
-        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (mRunning) {
-                    startFileTransfer();
-                }
-            }
-        }, 1000);
+        startFileTransfer(1000);
     }
 
     public void onEvent(FileSentToClientFail event) {
-        startFileTransfer();
+        mFilesCurrentlySending--;
+        startFileTransfer(1000);
     }
 
     public void onEvent(LogMessage message) {
@@ -245,7 +241,7 @@ public class SyncService extends Service {
             String clientName = getClients().get(clientAdressConnectionFail);
             createServerForClient(clientName, clientAdressConnectionFail);
             // check for other mClients who could pick up file transfers
-            startFileTransfer();
+            startFileTransfer(500);
         }
     }
 

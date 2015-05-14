@@ -103,7 +103,7 @@ public class BluetoothServer implements Runnable {
         outputStream = mSocket.getOutputStream();
         long totalLength = file.length();
         String filename = file.getName();
-        String command = Protocol.COMMAND_SEND_FILE + Protocol.SEPARATOR + filename + Protocol.SEPARATOR + totalLength + Protocol.COMMAND_END;
+        String command = Protocol.COMMAND_START + Protocol.COMMAND_SEND_FILE + Protocol.SEPARATOR + filename + Protocol.SEPARATOR + totalLength + Protocol.COMMAND_END;
         outputStream.write(command.getBytes());
         outputStream.flush();
 

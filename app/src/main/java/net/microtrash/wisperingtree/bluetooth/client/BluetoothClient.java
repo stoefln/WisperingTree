@@ -49,6 +49,7 @@ public class BluetoothClient implements Runnable {
     private String mReceiveFilename;
     private long mReceiveFileLength;
     private BluetoothManager.OnFileReceivedListener mOnFileReceivedListener;
+    private boolean mWaitForNextCommand = true;
 
     public void setLogger(LoggerInterface logger) {
         mLogger = logger;
@@ -102,7 +103,6 @@ public class BluetoothClient implements Runnable {
             byte[] stringBuffer = new byte[1];
 
             EventBus.getDefault().post(new ClientConnectionSuccess());
-            byte commandEnd = Protocol.COMMAND_END.getBytes()[0];
 
             EventBus bus = EventBus.getDefault();
             while (mRunning) {
@@ -111,9 +111,14 @@ public class BluetoothClient implements Runnable {
                 if (!mReceiveFile) {
                     while (mRunning && (bytesRead = mInputStream.read(stringBuffer, 0, stringBuffer.length)) > 0) {
                         //mLogger.log("receiving byte", ""+new String(stringBuffer, 0, bytesRead)+" command end:"+);
-                        if (stringBuffer[0] == commandEnd) {
+                        if(mWaitForNextCommand && stringBuffer[0] != Protocol.COMMAND_START){
+                            // skip everything between the end of the last file and the new command
+                            continue;
+                        } else if (stringBuffer[0] == Protocol.COMMAND_END) {
+                            // parse command
                             break;
                         } else {
+                            mWaitForNextCommand = false;
                             command += new String(stringBuffer, 0, bytesRead);
                         }
                         if(command.length() > 500){
@@ -136,9 +141,6 @@ public class BluetoothClient implements Runnable {
                         if ((bRead + bufferSize) >= mReceiveFileLength) {
                             c = (int) (mReceiveFileLength - bRead);
                         }
-                        /*if (bRead < 10000 || bRead + 10000 > mReceiveFileLength) {
-                            mLogger.log(new String(buffer));
-                        }*/
                         oos.write(dataBuffer, 0, c);
                         oos.flush();
                         bRead += c;
@@ -157,10 +159,11 @@ public class BluetoothClient implements Runnable {
 
                     }
                     mReceiveFile = false;
+                    mWaitForNextCommand = true;
                     mReceiveFilename = null;
 
                 }
-                if (command.startsWith(Protocol.COMMAND_SEND_FILE)) {
+                if (command.startsWith(Protocol.COMMAND_START + Protocol.COMMAND_SEND_FILE)) {
                     // "SEND_FILE:filename.ext"
                     try {
                         mLogger.log("command: ", command);
