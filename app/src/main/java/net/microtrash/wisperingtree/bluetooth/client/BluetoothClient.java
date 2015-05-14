@@ -49,7 +49,7 @@ public class BluetoothClient implements Runnable {
     private String mReceiveFilename;
     private long mReceiveFileLength;
     private BluetoothManager.OnFileReceivedListener mOnFileReceivedListener;
-    private boolean mWaitForNextCommand = true;
+    private boolean mReceiveCommand = false;
 
     public void setLogger(LoggerInterface logger) {
         mLogger = logger;
@@ -100,32 +100,42 @@ public class BluetoothClient implements Runnable {
             int bytesRead = -1;
 
             byte[] dataBuffer = new byte[bufferSize];
-            byte[] stringBuffer = new byte[1];
 
             EventBus.getDefault().post(new ClientConnectionSuccess());
 
             EventBus bus = EventBus.getDefault();
+            char ch;
+
             while (mRunning) {
 
                 String command = "";
                 if (!mReceiveFile) {
-                    while (mRunning && (bytesRead = mInputStream.read(stringBuffer, 0, stringBuffer.length)) > 0) {
-                        //mLogger.log("receiving byte", ""+new String(stringBuffer, 0, bytesRead)+" command end:"+);
-                        if(mWaitForNextCommand && stringBuffer[0] != Protocol.COMMAND_START){
-                            // skip everything between the end of the last file and the new command
-                            continue;
-                        } else if (stringBuffer[0] == Protocol.COMMAND_END) {
-                            // parse command
-                            break;
-                        } else {
-                            mWaitForNextCommand = false;
-                            command += new String(stringBuffer, 0, bytesRead);
+
+                    while (mRunning) {
+                        ch = (char) mInputStream.read();
+
+                        if (ch == Protocol.COMMAND_START.charAt(0)) {
+                            mReceiveCommand = true;
                         }
-                        if(command.length() > 500){
-                            String message = "Command too long! Command: "+command;
-                            mLogger.log(message);
-                            EventBus.getDefault().post(new ClientConnectionFail());
-                            return;
+                        if (mReceiveCommand) {
+                            //mLogger.log("receiving byte", ""+new String(stringBuffer, 0, bytesRead)+" command end:"+);
+                            if (!checkCommand(command)) {
+                                command = "";
+                                mReceiveCommand = false;
+                                mLogger.log("Invalid command: \"" + command + "\"");
+                                EventBus.getDefault().post(new ClientConnectionFail());
+                                return;
+                            }
+
+                            if (ch == Protocol.COMMAND_END) {
+                                mReceiveCommand = false;
+                                // parse command
+                                mLogger.log("command complete: " + String.valueOf(ch));
+                                break;
+                            } else {
+                                command += ch;
+                            }
+
                         }
                     }
 
@@ -144,11 +154,11 @@ public class BluetoothClient implements Runnable {
                         oos.write(dataBuffer, 0, c);
                         oos.flush();
                         bRead += c;
-                        bus.post(new ProgressStatusChange((float) bRead / (float) mReceiveFileLength, mReceiveFilename+" / "+bRead+" bytes"));
+                        bus.post(new ProgressStatusChange((float) bRead / (float) mReceiveFileLength, mReceiveFilename + " / " + bRead + " bytes"));
                         Thread.sleep(Protocol.TRANSFER_DELAY_MS);
                     }
                     oos.close();
-                    mLogger.log("read "+bRead+" bytes");
+                    mLogger.log("read " + bRead + " bytes");
                     if (mOnFileReceivedListener != null) {
                         new Handler(Looper.getMainLooper()).post(new Runnable() {
                             @Override
@@ -159,12 +169,11 @@ public class BluetoothClient implements Runnable {
 
                     }
                     mReceiveFile = false;
-                    mWaitForNextCommand = true;
                     mReceiveFilename = null;
 
                 }
+                mLogger.log("check command: " + command);
                 if (command.startsWith(Protocol.COMMAND_START + Protocol.COMMAND_SEND_FILE)) {
-                    // "SEND_FILE:filename.ext"
                     try {
                         mLogger.log("command: ", command);
                         String[] commandArray = command.split(Protocol.SEPARATOR);
@@ -186,6 +195,21 @@ public class BluetoothClient implements Runnable {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    private boolean checkCommand(String command) {
+        if (command.length() > 500) {
+            //mLogger.log("command too long: " + command.length());
+            return false;
+        }
+        if (command.length() >= Protocol.COMMAND_START.length()){
+            //mLogger.log("command long" + command.length());
+            if(!command.startsWith(Protocol.COMMAND_START)) {
+                //mLogger.log("command not valid: " + command);
+                return false;
+            }
+        }
+        return true;
     }
 
     public void write(String message) {

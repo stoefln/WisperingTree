@@ -168,10 +168,6 @@ public class SyncService extends Service {
         log("Client connection success !");
     }
 
-    public void onClientConnectionFail() {
-        log("Client connection fail !");
-    }
-
     public void onServeurConnectionSuccess() {
         log("Serveur Connexion success !");
         startFileTransfer();
@@ -314,7 +310,10 @@ public class SyncService extends Service {
 
     public void onEventMainThread(ClientConnectionFail event) {
         mBluetoothManager.isConnected = false;
-        onClientConnectionFail();
+        mBluetoothManager.disconnectClient();
+        log("Client connection fail !");
+        // try to reconnect
+       // clientConnect();
     }
 
     public void onEventMainThread(ServeurConnectionSuccess event) {
