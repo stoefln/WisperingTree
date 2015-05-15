@@ -13,7 +13,6 @@ import net.microtrash.wisperingtree.bus.ClientConnectionFail;
 import net.microtrash.wisperingtree.bus.ClientConnectionSuccess;
 import net.microtrash.wisperingtree.bus.FileSentToClient;
 import net.microtrash.wisperingtree.bus.FileSentToClientFail;
-import net.microtrash.wisperingtree.bus.LogMessage;
 import net.microtrash.wisperingtree.bus.ServeurConnectionFail;
 import net.microtrash.wisperingtree.bus.ServeurConnectionSuccess;
 import net.microtrash.wisperingtree.util.Logger;
@@ -194,10 +193,6 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
     public void onEvent(FileSentToClientFail event) {
         mFilesCurrentlySending--;
         startFileTransfer(1000);
-    }
-
-    public void onEvent(LogMessage message) {
-        message.save();
     }
 
     public void onServerConnectionFail(String clientAdressConnectionFail) {

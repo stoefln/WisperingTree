@@ -92,8 +92,11 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mAudioLevelBar.setRangeValues(0, 15000);
-        mAudioLevelBar.setNormalizedMinValue(0.5);
-
+        //mAudioLevelBar.setNormalizedMinValue(0.5);
+        int min = Tools.getPreferenceInt(getActivity(), Static.KEY_MIN_NOISE_VALUE);
+        int max = Tools.getPreferenceInt(getActivity(), Static.KEY_MAX_NOISE_VALUE);
+        mAudioLevelBar.setSelectedMinValue(min);
+        mAudioLevelBar.setSelectedMaxValue(max);
         mAudioLevelBar.setOnRangeSeekBarChangeListener(this);
     }
 
