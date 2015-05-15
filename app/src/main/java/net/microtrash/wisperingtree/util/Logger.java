@@ -1,7 +1,13 @@
 package net.microtrash.wisperingtree.util;
 
 
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
+
+import net.microtrash.wisperingtree.bus.LogMessage;
+
+import de.greenrobot.event.EventBus;
 
 public class Logger implements LoggerInterface {
     private static final String TAG = "Logger";
@@ -11,6 +17,30 @@ public class Logger implements LoggerInterface {
     public static LoggerInterface getInstance() {
         if(instance == null){
             instance = new Logger();
+            instance.setOnLogListener(new LoggerInterface() {
+
+                Handler mHandler = new Handler(Looper.getMainLooper());
+
+                @Override
+                public void log(final String message) {
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            EventBus.getDefault().post(new LogMessage(message));
+                        }
+                    });
+                }
+
+                @Override
+                public void log(String key, String value) {
+                    EventBus.getDefault().post(new LogMessage(key + ": " + value));
+                }
+
+                @Override
+                public void setOnLogListener(LoggerInterface logListener) {
+
+                }
+            });
         }
         return instance;
     }

@@ -90,11 +90,8 @@ public class RangeSeekBar<T extends Number> extends ImageView {
     private OnRangeSeekBarChangeListener<T> listener;
 
 
-    private float level = 0.5f;
+    private float level = 0f;
 
-    /**
-     * between 0 and 1
-     */
     public void setLevel(float level) {
         this.level = level;
         invalidate();
@@ -517,11 +514,12 @@ public class RangeSeekBar<T extends Number> extends ImageView {
         mRect.left = normalizedToScreen(normalizedMinValue);
         mRect.right = normalizedToScreen(normalizedMaxValue);
 
+        float levelNormalized = (float) level / (float) (absoluteMaxValue.intValue() - absoluteMinValue.intValue());
         mLevelRect.left = padding;
-        mLevelRect.right = normalizedToScreen(level);
-        if(level < normalizedMinValue) {
+        mLevelRect.right = normalizedToScreen(levelNormalized);
+        if(levelNormalized < normalizedMinValue) {
             paint.setColor(getResources().getColor(R.color.level_color_below_treshold1));
-        }else if(level > normalizedMinValue){
+        }else if(levelNormalized > normalizedMinValue){
             paint.setColor(getResources().getColor(R.color.level_color_above_treshold1));
         }
         canvas.drawRect(mLevelRect, paint);

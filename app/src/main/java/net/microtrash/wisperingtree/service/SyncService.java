@@ -52,31 +52,6 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         super.onStart(intent, startId);
         mRunning = true;
         mLogger = Logger.getInstance();
-        mLogger.setOnLogListener(new LoggerInterface() {
-
-            Handler mHandler = new Handler(Looper.getMainLooper());
-
-            @Override
-            public void log(final String message) {
-                mHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        EventBus.getDefault().post(new LogMessage(message));
-                    }
-                });
-            }
-
-            @Override
-            public void log(String key, String value) {
-                EventBus.getDefault().post(new LogMessage(key + ": " + value));
-            }
-
-            @Override
-            public void setOnLogListener(LoggerInterface logListener) {
-
-            }
-        });
-
 
         if (!EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().register(this);
