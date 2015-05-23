@@ -3,6 +3,7 @@ package net.microtrash.wisperingtree.fragment;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.SwitchCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +14,7 @@ import net.microtrash.wisperingtree.bus.AudioPeakDetectionChanged;
 import net.microtrash.wisperingtree.bus.SamplingStart;
 import net.microtrash.wisperingtree.bus.SamplingStop;
 import net.microtrash.wisperingtree.service.RecordService;
+import net.microtrash.wisperingtree.service.SyncService;
 import net.microtrash.wisperingtree.util.Static;
 import net.microtrash.wisperingtree.util.Tools;
 import net.microtrash.wisperingtree.util.Utils;
@@ -41,6 +43,9 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
     @InjectView(R.id.recording_indicator)
     View mRecordingIndicator;
 
+    @InjectView(R.id.enable_record_switch)
+    SwitchCompat mEnableRecordSwitch;
+
     /**
      * Returns a new instance of this fragment for the given section
      * number.
@@ -67,13 +72,12 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
         return mRootView;
     }
 
+
+
     @Override
     public void onResume() {
         super.onResume();
-        if (!Utils.isServiceRunning(getActivity(), RecordService.class)){
-            Intent intent = new Intent(getActivity(), RecordService.class);
-            getActivity().startService(intent);
-        }
+        mEnableRecordSwitch.setChecked(Utils.isServiceRunning(getActivity(), SyncService.class));
     }
 
     @Override
@@ -98,6 +102,27 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
         mAudioLevelBar.setSelectedMinValue(min);
         mAudioLevelBar.setSelectedMaxValue(max);
         mAudioLevelBar.setOnRangeSeekBarChangeListener(this);
+
+        mEnableRecordSwitch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getActivity(), RecordService.class);
+                boolean isChecked = mEnableRecordSwitch.isChecked();
+                if (isChecked) {
+                    getActivity().startService(intent);
+                } else {
+                    getActivity().stopService(intent);
+                }
+                // check and display result
+                mEnableRecordSwitch.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        mEnableRecordSwitch.setChecked(Utils.isServiceRunning(getActivity(), RecordService.class));
+                    }
+                }, 1000);
+            }
+        });
+
     }
 
     public void onEventMainThread(AudioLevelChanged event) {

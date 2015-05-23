@@ -81,7 +81,6 @@ public class RecordService extends Service {
         EventBus.getDefault().unregister(this);
     }
 
-
     public void onEvent(AudioPeakDetectionChanged event){
         mMinLevel = event.getMin();
         mMaxLevel = event.getMax();

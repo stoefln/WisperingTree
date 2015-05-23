@@ -88,8 +88,9 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
             mClients = new Hashtable<>();
             mClients.put("40:B0:FA:F4:EC:B9", "LG-E430");
             //mClients.put("HTC-ONE", "98:0D:2E:C0:30:86");
-            mClients.put("D8:90:E8:FB:D8:C2", "S4");
-            mClients.put("94:D7:71:E3:E6:61", "S3");
+            //mClients.put("D8:90:E8:FB:D8:C2", "S4");
+            //mClients.put("94:D7:71:E3:E6:61", "S3");
+            mClients.put("00:73:E0:14:ED:87", "Samsung Young White");
             mClients.put("B4:CE:F6:77:27:B0", "HTC OPCV1");
             mClients.put("AC:36:13:D9:C8:1E", "Galaxy S3 Mini");
         }
@@ -163,7 +164,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
                 if (!file.getName().endsWith(".wav") && !file.getName().endsWith(".mp3")) {
                     continue;
                 }
-                String key = file.getName() + file.length();
+                String key = file.getName() + file.lastModified();
                 File isTransferred = mFilesSent.get(key);
                 if (isTransferred == null) {
                     mBluetoothManager.sendFileToRandomClient(file);
