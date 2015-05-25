@@ -90,6 +90,10 @@ public class BluetoothManager extends BroadcastReceiver {
         return mClientConnectors == null ? 0 : mClientConnectors.size();
     }
 
+    public ArrayList<BluetoothServer> getClientConnectors() {
+        return mClientConnectors;
+    }
+
     public void selectServerMode() {
         //startDiscovery();
         mType = TypeBluetooth.Server;

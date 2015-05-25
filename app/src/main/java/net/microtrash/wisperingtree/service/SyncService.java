@@ -4,23 +4,26 @@ import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 
 import net.microtrash.wisperingtree.bluetooth.mananger.BluetoothManager;
+import net.microtrash.wisperingtree.bluetooth.server.BluetoothServer;
 import net.microtrash.wisperingtree.bus.ClientConnectionFail;
 import net.microtrash.wisperingtree.bus.ClientConnectionSuccess;
 import net.microtrash.wisperingtree.bus.FileSentToClient;
 import net.microtrash.wisperingtree.bus.FileSentToClientFail;
-import net.microtrash.wisperingtree.bus.ServeurConnectionFail;
-import net.microtrash.wisperingtree.bus.ServeurConnectionSuccess;
+import net.microtrash.wisperingtree.bus.ServerConnectionFail;
+import net.microtrash.wisperingtree.bus.ServerConnectionSuccess;
 import net.microtrash.wisperingtree.util.Logger;
 import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Static;
 import net.microtrash.wisperingtree.util.Utils;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Hashtable;
 
 import de.greenrobot.event.EventBus;
@@ -31,15 +34,25 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
 
     private Hashtable<String, File> mFilesSent = new Hashtable<>();
     private boolean mRunning = false;
-    private Hashtable<String, String> mClients;
     private int mFilesCurrentlySending = 0;
 
     //private final IBinder mBinder = new LocalBinder();
 
+
+    IBinder mBinder = new LocalBinder();
+
+
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return mBinder;
     }
+
+    public class LocalBinder extends Binder {
+        public SyncService getServerInstance() {
+            return SyncService.this;
+        }
+    }
+
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -78,24 +91,11 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         selectServerMode();
 
 
-        for (String mac : getClients().keySet()) {
-            createServerForClient(getClients().get(mac), mac);
+        for (String mac : Static.getClients().keySet()) {
+            createServerForClient(Static.getClients().get(mac), mac);
         }
     }
 
-    private Hashtable<String, String> getClients() {
-        if (mClients == null) {
-            mClients = new Hashtable<>();
-            mClients.put("40:B0:FA:F4:EC:B9", "LG-E430");
-            //mClients.put("HTC-ONE", "98:0D:2E:C0:30:86");
-            //mClients.put("D8:90:E8:FB:D8:C2", "S4");
-            //mClients.put("94:D7:71:E3:E6:61", "S3");
-            mClients.put("00:73:E0:14:ED:87", "Samsung Young White");
-            mClients.put("B4:CE:F6:77:27:B0", "HTC OPCV1");
-            mClients.put("AC:36:13:D9:C8:1E", "Galaxy S3 Mini");
-        }
-        return mClients;
-    }
 
     private void log(String s) {
         mLogger.log(s);
@@ -199,7 +199,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
     public void onServerConnectionFail(String clientAdressConnectionFail) {
         log("Client connection lost! Mac: " + clientAdressConnectionFail);
         if (mRunning) {
-            String clientName = getClients().get(clientAdressConnectionFail);
+            String clientName = Static.getClients().get(clientAdressConnectionFail);
             createServerForClient(clientName, clientAdressConnectionFail);
             // check for other mClients who could pick up file transfers
             startFileTransfer(500);
@@ -281,15 +281,18 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         startClient(5000);
     }
 
-    public void onEventMainThread(ServeurConnectionSuccess event) {
+    public void onEventMainThread(ServerConnectionSuccess event) {
         mBluetoothManager.isConnected = true;
         mBluetoothManager.onServerConnectionSuccess(event.mClientAdressConnected);
         onServeurConnectionSuccess();
     }
 
-    public void onEventMainThread(ServeurConnectionFail event) {
+    public void onEventMainThread(ServerConnectionFail event) {
         mBluetoothManager.onServerConnectionFailed(event.mClientAdressConnectionFail);
         onServerConnectionFail(event.mClientAdressConnectionFail);
     }
 
+    public ArrayList<BluetoothServer> getClientConnectors(){
+        return mBluetoothManager.getClientConnectors();
+    }
 }

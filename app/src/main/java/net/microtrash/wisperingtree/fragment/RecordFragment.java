@@ -14,7 +14,6 @@ import net.microtrash.wisperingtree.bus.AudioPeakDetectionChanged;
 import net.microtrash.wisperingtree.bus.SamplingStart;
 import net.microtrash.wisperingtree.bus.SamplingStop;
 import net.microtrash.wisperingtree.service.RecordService;
-import net.microtrash.wisperingtree.service.SyncService;
 import net.microtrash.wisperingtree.util.Static;
 import net.microtrash.wisperingtree.util.Tools;
 import net.microtrash.wisperingtree.util.Utils;
@@ -34,8 +33,6 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
     private static final String TAG = "RecordFragment";
     private View mRootView;
 
-    /*@InjectView(R.id.progressBar)
-    ProgressBar mAudioLevelBar;*/
 
     @InjectView(R.id.audioLevelBar)
     RangeSeekBar mAudioLevelBar;
@@ -72,19 +69,12 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
         return mRootView;
     }
 
-
-
     @Override
     public void onResume() {
         super.onResume();
-        mEnableRecordSwitch.setChecked(Utils.isServiceRunning(getActivity(), SyncService.class));
+        mEnableRecordSwitch.setChecked(Utils.isServiceRunning(getActivity(), RecordService.class));
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-
-    }
 
     @Override
     public void onDestroy() {

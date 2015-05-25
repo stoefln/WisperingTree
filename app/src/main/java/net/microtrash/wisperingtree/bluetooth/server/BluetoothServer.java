@@ -4,8 +4,8 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 
-import net.microtrash.wisperingtree.bus.ServeurConnectionFail;
-import net.microtrash.wisperingtree.bus.ServeurConnectionSuccess;
+import net.microtrash.wisperingtree.bus.ServerConnectionFail;
+import net.microtrash.wisperingtree.bus.ServerConnectionSuccess;
 
 import net.microtrash.wisperingtree.bus.FileSentToClient;
 import net.microtrash.wisperingtree.bus.FileSentToClientFail;
@@ -64,7 +64,7 @@ public class BluetoothServer implements Runnable {
             int bytesRead = -1;
             byte[] buffer = new byte[bufferSize];
 
-            EventBus.getDefault().post(new ServeurConnectionSuccess(mClientAddress));
+            EventBus.getDefault().post(new ServerConnectionSuccess(mClientAddress));
 
             while (mRunning) {
                 if (mFilesToSend.size() > 0) {
@@ -78,7 +78,7 @@ public class BluetoothServer implements Runnable {
         } catch (IOException e) {
             mRunning = false;
             mLogger.log("ERROR: " + e.getMessage());
-            EventBus.getDefault().post(new ServeurConnectionFail(mClientAddress));
+            EventBus.getDefault().post(new ServerConnectionFail(mClientAddress));
             EventBus.getDefault().post(new FileSentToClientFail());
         } catch (InterruptedException e) {
             mLogger.log("ERROR: " + e.getMessage());

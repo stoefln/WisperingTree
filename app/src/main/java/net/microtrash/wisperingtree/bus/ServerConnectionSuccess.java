@@ -3,11 +3,11 @@ package net.microtrash.wisperingtree.bus;
 /**
  * Created by Rami MARTIN on 13/04/2014.
  */
-public class ServeurConnectionSuccess {
+public class ServerConnectionSuccess {
 
     public String mClientAdressConnected;
 
-    public ServeurConnectionSuccess(String clientAdressConnected){
+    public ServerConnectionSuccess(String clientAdressConnected){
         mClientAdressConnected = clientAdressConnected;
     }
 }
