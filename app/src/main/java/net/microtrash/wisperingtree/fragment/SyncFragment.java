@@ -1,5 +1,6 @@
 package net.microtrash.wisperingtree.fragment;
 
+import android.bluetooth.BluetoothAdapter;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -63,13 +64,17 @@ public class SyncFragment extends Fragment {
         for (String mac : clients.keySet()) {
             if (mDevices.get(mac) == null) {
                 inflater.inflate(R.layout.sync_device_status_item, mDeviceStatusContainer, true);
-                TextView deviceIndicator = (TextView) mDeviceStatusContainer.getChildAt(mDeviceStatusContainer.getChildCount()-1);
+                TextView deviceIndicator = (TextView) mDeviceStatusContainer.getChildAt(mDeviceStatusContainer.getChildCount() - 1);
                 deviceIndicator.setText(clients.get(mac));
                 mDevices.put(mac, deviceIndicator);
             }
         }
 
-        updateDeviceIndicators();
+        if (BluetoothAdapter.getDefaultAdapter().getAddress().equals(Static.SERVER_MAC)) {
+            updateDeviceIndicators();
+        } else {
+            mDeviceStatusContainer.setVisibility(View.GONE);
+        }
     }
 
     private SyncService mSyncService;
@@ -86,7 +91,7 @@ public class SyncFragment extends Fragment {
     };
 
     private void updateDeviceIndicators() {
-        if(!Utils.isServiceRunning(getActivity(), SyncService.class)){
+        if (!Utils.isServiceRunning(getActivity(), SyncService.class)) {
             return;
         }
         if (mSyncService == null) {
@@ -132,7 +137,7 @@ public class SyncFragment extends Fragment {
                 if (isChecked) {
                     getActivity().startService(intent);
                 } else {
-                    if(mSyncService != null) {
+                    if (mSyncService != null) {
                         getActivity().unbindService(mConnection);
                     }
                     getActivity().stopService(intent);
@@ -152,7 +157,7 @@ public class SyncFragment extends Fragment {
 
     @Override
     public void onDestroy() {
-        if(mSyncService != null) {
+        if (mSyncService != null) {
             getActivity().unbindService(mConnection);
         }
         EventBus.getDefault().unregister(this);

@@ -6,7 +6,6 @@ import android.media.AudioFormat;
 import android.media.MediaRecorder;
 import android.os.Handler;
 import android.os.IBinder;
-import android.util.Log;
 
 import net.microtrash.wisperingtree.AudioRecorder;
 import net.microtrash.wisperingtree.bus.AudioLevelChanged;
@@ -109,7 +108,7 @@ public class RecordService extends Service {
             public void run() {
                 if (mRecorder != null) {
                     int amp = mRecorder.getMaxAmplitude();
-                    Log.v("RecordService", "vol: " + amp + " state: " + mRecorder.getState());
+                    //Log.v("RecordService", "vol: " + amp + " state: " + mRecorder.getState());
 
                     //mAudioLevelBar.getAbsoluteMaxValue(30000);
                     float normalizedLevel = (float) amp / (float) 15000;
@@ -119,17 +118,24 @@ public class RecordService extends Service {
                         startSampling();
                         mSampling = true;
                     }
+                    long now = System.currentTimeMillis();
                     if (amp > mMinLevel) {
-                        mLastTimeAboveMin = System.currentTimeMillis();
+                        mLastTimeAboveMin = now;
                     }
                     if (mSampling && mLastTimeAboveMin != null) {
-                        long timeDiff = System.currentTimeMillis() - mLastTimeAboveMin;
+                        long timeDiff = now - mLastTimeAboveMin;
                         // if recording was started AND level has stayed below min level for at least a second -> stop
                         if (timeDiff > 1000 && amp < mMinLevel) {
                             stopSampling();
                             mSampling = false;
                             mLastTimeAboveMin = null;
                         }
+                    }
+                    // make sure recordings don't exceed the max recording length
+                    if(mSampling && now - mSampleStartTime > 10000){
+                        stopSampling();
+                        mSampling = false;
+                        mLastTimeAboveMin = null;
                     }
                     EventBus.getDefault().post(new AudioLevelChanged(amp));
                     observeAudio();
