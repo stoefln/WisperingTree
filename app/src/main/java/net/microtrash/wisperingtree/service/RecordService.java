@@ -4,6 +4,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.MediaRecorder;
+import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.IBinder;
 
@@ -19,6 +20,11 @@ import net.microtrash.wisperingtree.util.Tools;
 import net.microtrash.wisperingtree.util.Utils;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import de.greenrobot.event.EventBus;
 
@@ -36,7 +42,7 @@ public class RecordService extends Service {
 
     private final static int[][] sampleRates =
             {
-                    {44100, 22050, 11025, 8000},
+                    {22050, 44100, 11025, 8000},
                     {22050, 11025, 8000, 44100},
                     {11025, 8000, 22050, 44100},
                     {8000, 11025, 22050, 44100}
@@ -80,7 +86,7 @@ public class RecordService extends Service {
         EventBus.getDefault().unregister(this);
     }
 
-    public void onEvent(AudioPeakDetectionChanged event){
+    public void onEvent(AudioPeakDetectionChanged event) {
         mMinLevel = event.getMin();
         mMaxLevel = event.getMax();
     }
@@ -132,7 +138,7 @@ public class RecordService extends Service {
                         }
                     }
                     // make sure recordings don't exceed the max recording length
-                    if(mSampling && now - mSampleStartTime > 10000){
+                    if (mSampling && now - mSampleStartTime > 10000) {
                         stopSampling();
                         mSampling = false;
                         mLastTimeAboveMin = null;
@@ -153,7 +159,7 @@ public class RecordService extends Service {
     }
 
     private void stopSampling() {
-        mLogger.log("StopSampling. Filelength: " + (float) (System.currentTimeMillis() - mSampleStartTime) / 1000f + " sec. Filename: " + mRecorder.getOutputFile());
+        mLogger.log("StopSampling. Filelength: " + (float) (System.currentTimeMillis() - mSampleStartTime) / 1000f + " sec.");
         final File outputFile = new File(mRecorder.getOutputFile());
         if (mRecorder != null && mLastTimeAboveMin != null) {
             try {
@@ -167,8 +173,9 @@ public class RecordService extends Service {
                         File newFile = new File(outputFile.getPath().replace(".tmp", ".wav"));
                         outputFile.renameTo(newFile);
                         mLogger.log("new File created", newFile.getName());
+                        backupFile(newFile);
                     }
-                }, 1000);
+                }, 600);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -181,6 +188,41 @@ public class RecordService extends Service {
             }
         }
         EventBus.getDefault().post(new SamplingStop());
+    }
+
+    private void backupFile(final File newFile) {
+        final String backupDirPath = Utils.getAppRootDir() + File.separatorChar + Static.BACKUP_DIR_NAME;
+        File backupDir = new File(backupDirPath);
+        if (!backupDir.exists()) {
+            backupDir.mkdir();
+        }
+        new AsyncTask<Void, Void, Void>() {
+
+            @Override
+            protected Void doInBackground(Void... params) {
+                File backupFile = new File(backupDirPath + File.separatorChar + "recording_" + System.currentTimeMillis() + ".wav");
+                try {
+                    copy(newFile, backupFile);
+                } catch (Exception e) {
+                    mLogger.log(e.getMessage());
+                }
+                return null;
+            }
+        }.execute();
+    }
+
+    public void copy(File src, File dst) throws IOException {
+        InputStream in = new FileInputStream(src);
+        OutputStream out = new FileOutputStream(dst);
+
+        // Transfer bytes from in to out
+        byte[] buf = new byte[1024];
+        int len;
+        while ((len = in.read(buf)) > 0) {
+            out.write(buf, 0, len);
+        }
+        in.close();
+        out.close();
     }
 
     private String getNextFilename() {
