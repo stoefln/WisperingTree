@@ -349,6 +349,7 @@ public class BluetoothManager extends BroadcastReceiver {
     }
 
     public void resetServer() {
+        resetWaitingThreadServer();
         if (mClientConnectors != null) {
             for (int i = 0; i < mClientConnectors.size(); i++) {
                 mClientConnectors.get(i).closeConnection();

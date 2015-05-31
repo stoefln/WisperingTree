@@ -76,12 +76,14 @@ public class BluetoothServer implements Runnable {
                 Thread.sleep(500);
             }
         } catch (IOException e) {
+            if(mRunning) {
+                mLogger.log("IOException in Server: " + e.getMessage());
+                EventBus.getDefault().post(new ServerConnectionFail(mClientAddress));
+                EventBus.getDefault().post(new FileSentToClientFail());
+            }
             mRunning = false;
-            mLogger.log("ERROR: " + e.getMessage());
-            EventBus.getDefault().post(new ServerConnectionFail(mClientAddress));
-            EventBus.getDefault().post(new FileSentToClientFail());
         } catch (InterruptedException e) {
-            mLogger.log("ERROR: " + e.getMessage());
+            mLogger.log("InterruptedException in Server: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -142,7 +144,17 @@ public class BluetoothServer implements Runnable {
     }
 
     public void closeConnection() {
+        mRunning = false;
+        if(mServerSocket != null){
+            try {
+                mServerSocket.close();
+            } catch (IOException e) {
+                mLogger.log(e.getMessage());
+                e.printStackTrace();
+            }
+        }
         if (mSocket != null) {
+
             try {
                 mInputStream.close();
                 mInputStream = null;
@@ -154,8 +166,8 @@ public class BluetoothServer implements Runnable {
                 mServerSocket = null;
                 mRunning = false;
             } catch (Exception e) {
+                e.printStackTrace();
             }
-            mRunning = false;
         }
     }
 }

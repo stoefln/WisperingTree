@@ -4,10 +4,10 @@ import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 
 import net.microtrash.wisperingtree.bluetooth.mananger.BluetoothManager;
 import net.microtrash.wisperingtree.bluetooth.server.BluetoothServer;
@@ -40,6 +40,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
 
 
     IBinder mBinder = new LocalBinder();
+    private Thread mThread;
 
 
     @Override
@@ -83,6 +84,8 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
                 startClient(0);
             }
         }
+
+
     }
 
     public void startServer() {
@@ -139,70 +142,76 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
 
     public void onServeurConnectionSuccess() {
         log("Serveur Connexion success !");
-        startFileTransfer();
     }
 
-    private void startFileTransfer(int delay) {
-        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (mRunning) {
-                    startFileTransfer();
-                }
-            }
-        }, delay);
-    }
 
     private void startFileTransfer() {
-        if (mFilesCurrentlySending > 0) {
-            return;
-        }
-        if (mBluetoothManager.getConnectedClientNum() > 0) {
-            File rootDir = new File(Utils.getAppRootDir());
-            int i = 0;
-            for (File file : rootDir.listFiles()) {
-                if (!file.getName().endsWith(".wav") && !file.getName().endsWith(".mp3")) {
-                    continue;
-                }
-                String key = file.getName() + file.lastModified();
-                File isTransferred = mFilesSent.get(key);
-                if (isTransferred == null) {
-                    mBluetoothManager.sendFileToRandomClient(file);
-                    mFilesCurrentlySending++;
-                    return;
-                }
-            }
-            log("Files transferred, check again...");
-            startFileTransfer(4000);
 
-        } else {
-            log("No clients connected. Next try in 5 sek...");
-            startFileTransfer(5000);
-        }
+        log("Starting worker task for file transfer...");
+        new AsyncTask<Void, Void, Void>() {
+
+            @Override
+            protected Void doInBackground(Void... params) {
+                try {
+                    while (mRunning) {
+                        Thread.sleep(1000);
+
+                        if (mFilesCurrentlySending > 0) {
+                            continue;
+                        }
+                        if (mBluetoothManager.getConnectedClientNum() > 0) {
+                            File rootDir = new File(Utils.getAppRootDir());
+                            boolean newFileSent = false;
+                            for (File file : rootDir.listFiles()) {
+                                if (!file.getName().endsWith(".wav") && !file.getName().endsWith(".mp3")) {
+                                    continue;
+                                }
+                                String key = file.getName() + file.lastModified();
+                                File isTransferred = mFilesSent.get(key);
+                                if (isTransferred == null) {
+                                    mBluetoothManager.sendFileToRandomClient(file);
+                                    mFilesCurrentlySending++;
+                                    newFileSent = true;
+                                    break;
+                                }
+                            }
+                            if(!newFileSent) {
+                                log("Files transferred, check again in 5 sek...");
+                                Thread.sleep(5000);
+                            }
+
+                        } else {
+                            log("No clients connected. Next try in 5 sek...");
+                            Thread.sleep(5000);
+                        }
+                    }
+                } catch (InterruptedException e) {
+                    return null;
+                }
+                return null;
+            }
+        }.execute();
+
     }
 
     public void onEvent(FileSentToClient event) {
-        mFilesCurrentlySending--;
         File file = event.getFile();
         log("file sent: " + file.getName());
         String key = file.getName() + file.lastModified();
         mFilesSent.put(key, file);
-
-        startFileTransfer(1000);
+        mFilesCurrentlySending--;
     }
 
     public void onEvent(FileSentToClientFail event) {
         mFilesCurrentlySending--;
-        startFileTransfer(1000);
     }
 
     public void onServerConnectionFail(String clientAdressConnectionFail) {
-        log("Client connection lost! Mac: " + clientAdressConnectionFail);
+        log("Client connection lost to "+Static.getClients().get(clientAdressConnectionFail));
         if (mRunning) {
             String clientName = Static.getClients().get(clientAdressConnectionFail);
             createServerForClient(clientName, clientAdressConnectionFail);
             // check for other mClients who could pick up file transfers
-            startFileTransfer(500);
         }
     }
 
@@ -292,7 +301,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         onServerConnectionFail(event.mClientAdressConnectionFail);
     }
 
-    public ArrayList<BluetoothServer> getClientConnectors(){
+    public ArrayList<BluetoothServer> getClientConnectors() {
         return mBluetoothManager.getClientConnectors();
     }
 }

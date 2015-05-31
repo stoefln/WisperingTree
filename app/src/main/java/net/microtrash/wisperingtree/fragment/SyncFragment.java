@@ -158,7 +158,13 @@ public class SyncFragment extends Fragment {
     @Override
     public void onDestroy() {
         if (mSyncService != null) {
-            getActivity().unbindService(mConnection);
+            try {
+                getActivity().unbindService(mConnection);
+            } catch (Exception e){
+
+            } finally {
+                mSyncService = null;
+            }
         }
         EventBus.getDefault().unregister(this);
         super.onDestroy();
