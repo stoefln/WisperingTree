@@ -257,7 +257,7 @@ public class BluetoothManager extends BroadcastReceiver {
             if (addressClientConnected.equals(bluetoothServerMap.getValue().getClientAddress())) {
                 mClientConnectors.add(bluetoothServerMap.getValue());
                 incrementNbrConnection();
-                mLogger.log("onServerConnectionSuccess address : " + addressClientConnected);
+                mLogger.log("Connection established to " + Static.getClients().get(addressClientConnected));
                 return;
             }
         }
@@ -275,7 +275,7 @@ public class BluetoothManager extends BroadcastReceiver {
                 mServeurThreadList.remove(addressClientConnectionFailed);
                 mAdressListServerWaitingConnection.remove(addressClientConnectionFailed);
                 decrementNbrConnection();
-                mLogger.log("onServerConnectionFailed address : " + addressClientConnectionFailed);
+                mLogger.log("onServerConnectionFailed address : " + Static.getClients().get(addressClientConnectionFailed));
                 return;
             }
             index++;
@@ -302,9 +302,10 @@ public class BluetoothManager extends BroadcastReceiver {
     public boolean sendFileToRandomClient(File file) {
 
         if (mType != null && isConnected && mClientConnectors != null && mClientConnectors.size() > 0) {
-            int client = (int) Math.round(Math.random() * (mClientConnectors.size() - 1));
-            mLogger.log("Sending file " + file.getName() + " to client " + client);
-            mClientConnectors.get(client).sendFile(file);
+            int clientSelection = (int) Math.round(Math.random() * (mClientConnectors.size() - 1));
+            BluetoothServer server = mClientConnectors.get(clientSelection);
+            mLogger.log("Sending file " + file.getName() + " to " + Static.getClients().get(server.getClientAddress()));
+            server.sendFile(file);
             return true;
         } else {
             mLogger.log("Can't send file, no clients connected");

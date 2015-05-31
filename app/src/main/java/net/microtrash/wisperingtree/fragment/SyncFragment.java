@@ -138,7 +138,9 @@ public class SyncFragment extends Fragment {
                     getActivity().startService(intent);
                 } else {
                     if (mSyncService != null) {
-                        getActivity().unbindService(mConnection);
+                        try {
+                            getActivity().unbindService(mConnection);
+                        } catch (Exception e){}
                     }
                     getActivity().stopService(intent);
                 }

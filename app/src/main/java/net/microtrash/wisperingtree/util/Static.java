@@ -13,6 +13,7 @@ public class Static {
     public static final String KEY_MIN_NOISE_VALUE = "min_noise_value";
     public static final String KEY_MAX_NOISE_VALUE = "max_noise_value";
     public static final String BACKUP_DIR_NAME = "backup";
+    public static final String KEY_FILES_TRANSFERRED = "files_transferred";
     private static Hashtable<String, String> mClients;
 
     public static final String SERVER_MAC = "B4:CE:F6:77:27:B0";

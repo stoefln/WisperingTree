@@ -20,6 +20,7 @@ import net.microtrash.wisperingtree.bus.ServerConnectionSuccess;
 import net.microtrash.wisperingtree.util.Logger;
 import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Static;
+import net.microtrash.wisperingtree.util.Tools;
 import net.microtrash.wisperingtree.util.Utils;
 
 import java.io.File;
@@ -32,7 +33,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
     private BluetoothManager mBluetoothManager;
     private LoggerInterface mLogger;
 
-    private Hashtable<String, File> mFilesSent = new Hashtable<>();
+    private Hashtable<String, File> mFilesSent;
     private boolean mRunning = false;
     private int mFilesCurrentlySending = 0;
 
@@ -66,6 +67,11 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
 
         mRunning = true;
         mLogger = Logger.getInstance();
+
+        mFilesSent = (Hashtable<String, File>) Tools.getPreferenceSerializable(getBaseContext(), Static.KEY_FILES_TRANSFERRED);
+        if(mFilesSent == null){
+            mFilesSent = new Hashtable<>();
+        }
 
         if (!EventBus.getDefault().isRegistered(this))
             EventBus.getDefault().register(this);
@@ -215,6 +221,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
     public void onDestroy() {
         super.onDestroy();
         log("Stopping service");
+        Tools.putPreference(getBaseContext(), Static.KEY_FILES_TRANSFERRED, mFilesSent);
         mRunning = false;
         mBluetoothManager.closeAllConnexion();
         EventBus.getDefault().unregister(this);
@@ -289,7 +296,6 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
     public void onEventMainThread(ServerConnectionSuccess event) {
         mBluetoothManager.isConnected = true;
         mBluetoothManager.onServerConnectionSuccess(event.mClientAdressConnected);
-        log("Server connection success !");
     }
 
     public void onEventMainThread(ServerConnectionFail event) {
