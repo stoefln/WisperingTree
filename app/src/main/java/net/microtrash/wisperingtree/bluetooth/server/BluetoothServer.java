@@ -4,12 +4,11 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
 
-import net.microtrash.wisperingtree.bus.ServerConnectionFail;
-import net.microtrash.wisperingtree.bus.ServerConnectionSuccess;
-
 import net.microtrash.wisperingtree.bus.FileSentToClient;
 import net.microtrash.wisperingtree.bus.FileSentToClientFail;
 import net.microtrash.wisperingtree.bus.ProgressStatusChange;
+import net.microtrash.wisperingtree.bus.ServerConnectionFail;
+import net.microtrash.wisperingtree.bus.ServerConnectionSuccess;
 import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Protocol;
 
@@ -76,10 +75,12 @@ public class BluetoothServer implements Runnable {
                 Thread.sleep(500);
             }
         } catch (IOException e) {
-            if(mRunning) {
+            if (mRunning) {
                 mLogger.log("IOException in Server: " + e.getMessage());
                 EventBus.getDefault().post(new ServerConnectionFail(mClientAddress));
-                EventBus.getDefault().post(new FileSentToClientFail());
+                if (mFilesToSend.size() > 0) {
+                    EventBus.getDefault().post(new FileSentToClientFail());
+                }
             }
             mRunning = false;
         } catch (InterruptedException e) {
@@ -145,7 +146,7 @@ public class BluetoothServer implements Runnable {
 
     public void closeConnection() {
         mRunning = false;
-        if(mServerSocket != null){
+        if (mServerSocket != null) {
             try {
                 mServerSocket.close();
             } catch (IOException e) {

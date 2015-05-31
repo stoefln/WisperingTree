@@ -8,9 +8,16 @@ import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
+import android.widget.Toast;
 
+import com.activeandroid.query.Delete;
+
+import net.microtrash.wisperingtree.bus.LogMessage;
+import net.microtrash.wisperingtree.bus.LogReset;
 import net.microtrash.wisperingtree.fragment.PlayFragment;
 import net.microtrash.wisperingtree.fragment.RecordFragment;
+
+import de.greenrobot.event.EventBus;
 
 
 public class MainActivity extends ActionBarActivity
@@ -89,7 +96,10 @@ public class MainActivity extends ActionBarActivity
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
+        if (id == R.id.action_clear_log) {
+            new Delete().from(LogMessage.class).execute();
+            Toast.makeText(this, "Log messages deleted!", Toast.LENGTH_SHORT).show();
+            EventBus.getDefault().post(new LogReset());
             return true;
         }
 

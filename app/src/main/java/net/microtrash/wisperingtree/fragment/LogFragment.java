@@ -18,6 +18,7 @@ import com.activeandroid.query.Select;
 
 import net.microtrash.wisperingtree.R;
 import net.microtrash.wisperingtree.bus.LogMessage;
+import net.microtrash.wisperingtree.bus.LogReset;
 import net.microtrash.wisperingtree.bus.ProgressStatusChange;
 
 import java.util.ArrayList;
@@ -57,11 +58,6 @@ public class LogFragment extends Fragment {
         return mRootView;
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
-
-    }
 
     /**
      * called by bus
@@ -73,6 +69,13 @@ public class LogFragment extends Fragment {
             mListView.setSelection(mListView.getCount() - 1);
 
         }
+    }
+
+    /**
+     * called by bus
+     */
+    public void onEvent(LogReset event) {
+        mListLog.clear();
     }
 
     /**

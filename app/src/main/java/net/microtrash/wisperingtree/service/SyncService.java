@@ -63,6 +63,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
     @Override
     public void onStart(Intent intent, int startId) {
         super.onStart(intent, startId);
+
         mRunning = true;
         mLogger = Logger.getInstance();
 
@@ -136,15 +137,6 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         mBluetoothManager.createServer(mac);
     }
 
-    public void onClientConnectionSuccess() {
-        log("Client connection success !");
-    }
-
-    public void onServeurConnectionSuccess() {
-        log("Serveur Connexion success !");
-    }
-
-
     private void startFileTransfer() {
 
         log("Starting worker task for file transfer...");
@@ -156,6 +148,10 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
                     while (mRunning) {
                         Thread.sleep(1000);
 
+                        if(mFilesCurrentlySending < 0){
+                            mLogger.log("!!!mFilesCurrentlySending: "+mFilesCurrentlySending);
+                            mFilesCurrentlySending = 0;
+                        }
                         if (mFilesCurrentlySending > 0) {
                             continue;
                         }
@@ -279,7 +275,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
 
     public void onEventMainThread(ClientConnectionSuccess event) {
         mBluetoothManager.isConnected = true;
-        onClientConnectionSuccess();
+        log("Client connection success !");
     }
 
     public void onEventMainThread(ClientConnectionFail event) {
@@ -293,7 +289,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
     public void onEventMainThread(ServerConnectionSuccess event) {
         mBluetoothManager.isConnected = true;
         mBluetoothManager.onServerConnectionSuccess(event.mClientAdressConnected);
-        onServeurConnectionSuccess();
+        log("Server connection success !");
     }
 
     public void onEventMainThread(ServerConnectionFail event) {
