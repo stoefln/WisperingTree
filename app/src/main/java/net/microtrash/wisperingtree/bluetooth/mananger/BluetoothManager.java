@@ -13,6 +13,7 @@ import net.microtrash.wisperingtree.bluetooth.server.BluetoothServer;
 import net.microtrash.wisperingtree.bus.BondedDevice;
 
 import net.microtrash.wisperingtree.util.LoggerInterface;
+import net.microtrash.wisperingtree.util.Static;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -105,9 +106,10 @@ public class BluetoothManager extends BroadcastReceiver {
     }
 
     public void selectClientMode() {
-        //startDiscovery();
+        startDiscovery();
         mType = TypeBluetooth.Client;
-        mBluetoothAdapter.setName("Client " + android.os.Build.MODEL);
+        String name = Static.getClients().get(mBluetoothAdapter.getAddress());
+        mBluetoothAdapter.setName("Client " + name);
     }
 
     public String getYourBtMacAddress() {

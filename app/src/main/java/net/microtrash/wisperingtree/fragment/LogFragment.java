@@ -8,6 +8,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -45,6 +46,7 @@ public class LogFragment extends Fragment {
     private ArrayList<String> mListLog;
     private ArrayAdapter<String> mAdapter;
     private boolean mTouchScrolling = false;
+    private boolean mAutoScroll = true;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -67,8 +69,9 @@ public class LogFragment extends Fragment {
     public void onEvent(LogMessage message) {
         mListLog.add(message.toString());
         mAdapter.notifyDataSetChanged();
-        if (mListView != null && !mTouchScrolling) {
+        if (mListView != null && !mTouchScrolling && mAutoScroll) {
             mListView.setSelection(mListView.getCount() - 1);
+
         }
     }
 
@@ -109,13 +112,36 @@ public class LogFragment extends Fragment {
             }
         });
 
+        mListView.setOnScrollListener(new AbsListView.OnScrollListener() {
+            public int preLast;
+
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+
+
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                final int lastItem = firstVisibleItem + visibleItemCount;
+                mAutoScroll = false;
+                if (lastItem == totalItemCount) {
+
+                    if (preLast != lastItem) { //to avoid multiple calls for last item
+                        preLast = lastItem;
+                    }
+                    mAutoScroll = true;
+                }
+            }
+        });
+
         int count = new Select()
                 .from(LogMessage.class).count();
 
         final int limit = 2000;
         From select = new Select()
                 .from(LogMessage.class).limit(limit);
-        if(count > limit){
+        if (count > limit) {
             select.offset(count - limit);
         }
         List<LogMessage> result = select.execute();

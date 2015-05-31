@@ -52,10 +52,10 @@ public class MainActivity extends ActionBarActivity
         Fragment fragment = null;
         switch (position){
             case  0:
-                fragment = RecordFragment.newInstance();
+                fragment = PlayFragment.newInstance();
                 break;
             case 1:
-                fragment = PlayFragment.newInstance();
+                fragment = RecordFragment.newInstance();
                 break;
 
         }
