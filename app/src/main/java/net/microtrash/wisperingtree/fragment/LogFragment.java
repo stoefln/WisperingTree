@@ -76,6 +76,7 @@ public class LogFragment extends Fragment {
      */
     public void onEvent(LogReset event) {
         mListLog.clear();
+        mAdapter.notifyDataSetChanged();
     }
 
     /**

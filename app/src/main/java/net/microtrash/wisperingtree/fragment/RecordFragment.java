@@ -87,8 +87,15 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
         super.onViewCreated(view, savedInstanceState);
         mAudioLevelBar.setRangeValues(0, 15000);
         //mAudioLevelBar.setNormalizedMinValue(0.5);
-        int min = Tools.getPreferenceInt(getActivity(), Static.KEY_MIN_NOISE_VALUE);
-        int max = Tools.getPreferenceInt(getActivity(), Static.KEY_MAX_NOISE_VALUE);
+        int min = 10;
+        int max = 100;
+
+        try {
+            min = Tools.getPreferenceInt(getActivity(), Static.KEY_MIN_NOISE_VALUE);
+            max = Tools.getPreferenceInt(getActivity(), Static.KEY_MAX_NOISE_VALUE);
+        } catch (Exception e){
+            e.printStackTrace();
+        }
         mAudioLevelBar.setSelectedMinValue(min);
         mAudioLevelBar.setSelectedMaxValue(max);
         mAudioLevelBar.setOnRangeSeekBarChangeListener(this);
@@ -129,8 +136,8 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
 
     @Override
     public void onRangeSeekBarValuesChanged(RangeSeekBar bar, Object minValue, Object maxValue) {
-        Integer min = (Integer) minValue;
-        Integer max = (Integer) maxValue;
+        int min = (Integer) minValue;
+        int max = (Integer) maxValue;
         Tools.putPreference(getActivity(), Static.KEY_MIN_NOISE_VALUE, min);
         Tools.putPreference(getActivity(), Static.KEY_MAX_NOISE_VALUE, max);
         EventBus.getDefault().post(new AudioPeakDetectionChanged(min, max));
