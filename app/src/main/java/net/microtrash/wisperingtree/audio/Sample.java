@@ -18,7 +18,12 @@ public class Sample {
     private long mTimestampStop = 0;
     private boolean mPlaying = false;
     private MediaPlayer mPlayer;
+    private MediaPlayer.OnCompletionListener mOnCompletionListener;
+    private boolean mRandomizePan = false;
 
+    public void setOnCompletionListener(MediaPlayer.OnCompletionListener onCompletionListener) {
+        mOnCompletionListener = onCompletionListener;
+    }
 
     public File getFile() {
         return mFile;
@@ -58,7 +63,7 @@ public class Sample {
         mFile = file;
     }
 
-    public void play(Context context) {
+    public void play(Context context) throws IOException {
         try {
             if (mFile != null && mFile.exists()) {
                 Log.v(TAG, "Starting " + mFile.getName());
@@ -68,9 +73,11 @@ public class Sample {
                 PresetReverb mReverb = new PresetReverb(0, 0);
                 mReverb.setPreset(PresetReverb.PRESET_LARGEHALL);
                 mReverb.setEnabled(true);
-                float pan = (float) Math.random();
-                float vol = 0.2f + (float) Math.random() * 0.8f;
-                mPlayer.setVolume(vol * pan, vol * (1 - pan));
+                if(mRandomizePan) {
+                    float pan = (float) Math.random();
+                    float vol = 0.2f + (float) Math.random() * 0.8f;
+                    mPlayer.setVolume(vol * pan, vol * (1 - pan));
+                }
                 mPlayer.attachAuxEffect(mReverb.getId());
                 mPlayer.setAuxEffectSendLevel(1.0f);
                 mPlayer.prepare();
@@ -84,16 +91,19 @@ public class Sample {
                         mp.release();
                         mTimestampStop = System.currentTimeMillis();
                         mPlaying = false;
+                        if (mOnCompletionListener != null) {
+                            mOnCompletionListener.onCompletion(mp);
+                        }
                     }
                 });
             }
         } catch (IOException e) {
-            e.printStackTrace();
             mTimestampStop = System.currentTimeMillis();
             if (mPlayer != null) {
                 mPlayer.release();
                 mPlayer = null;
             }
+            throw new IOException("Error while playing file "+mFile.getAbsolutePath());
         }
     }
 

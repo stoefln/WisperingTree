@@ -1,15 +1,20 @@
 package net.microtrash.wisperingtree.audio;
 
 import android.content.Context;
-import android.os.Handler;
 
+import java.io.File;
 import java.util.ArrayList;
 
-public class SamplePlayer {
-    private final Context mContext;
+public abstract class SamplePlayer {
+
+    protected final Context mContext;
+
     ArrayList<Sample> mSamples = new ArrayList<>();
-    private int mBpm = 30;
-    private boolean mActive = true;
+    protected boolean mActive = true;
+    protected int mBpm = 30;
+    public void setSpeed(int speed) {
+        mBpm = speed;
+    }
 
     public SamplePlayer(Context context) {
         mContext = context;
@@ -19,30 +24,7 @@ public class SamplePlayer {
         mSamples.add(sample);
     }
 
-    public void start() {
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                if (mActive) {
-                    long maxNotPlayDuration = 0;
-                    Sample nextSample = null;
-                    for (Sample sample : mSamples) {
-                        long lastPlay = sample.getDurationSinceLastPlayed();
-                        if (lastPlay >= maxNotPlayDuration) {
-                            maxNotPlayDuration = lastPlay;
-                            nextSample = sample;
-                        }
-                    }
-
-                    if (nextSample != null) {
-                        nextSample.play(mContext);
-                    }
-
-                    start();
-                }
-            }
-        }, 60 * 1000 / (mBpm + 1));
-    }
+    public abstract void start();
 
     public void stop() {
         for (Sample sample : mSamples) {
@@ -51,7 +33,13 @@ public class SamplePlayer {
         mActive = false;
     }
 
-    public void setSpeed(int speed) {
-        mBpm = speed;
+
+    public boolean hasFile(File file) {
+        for (Sample sample : mSamples) {
+            if (sample.getFile().getAbsolutePath().equals(file.getAbsolutePath())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
