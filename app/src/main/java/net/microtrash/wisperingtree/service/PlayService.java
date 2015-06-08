@@ -41,17 +41,22 @@ public class PlayService extends Service {
 
     private void init() {
         mSamplePlayer = new SequencialSamplePlayer(getBaseContext());
+        //mSamplePlayer = new MergeSamplePlayer(getBaseContext());
         initSamples();
         mSamplePlayer.start();
     }
 
     private void initSamples() {
-        File rootDir = new File(Utils.getAppRootDir());
-        for (File file : rootDir.listFiles()) {
-            Sample s = new Sample(file);
-            if (!mSamplePlayer.hasFile(file)) {
-                mSamplePlayer.addSample(s);
+        try {
+            File rootDir = new File(Utils.getAppRootDir());
+            for (File file : rootDir.listFiles()) {
+                Sample s = new Sample(file);
+                if (!mSamplePlayer.hasFile(file)) {
+                    mSamplePlayer.addSample(s);
+                }
             }
+        } catch (Exception e){
+            e.printStackTrace();
         }
 
         new Handler().postDelayed(new Runnable() {

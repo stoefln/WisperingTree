@@ -130,15 +130,15 @@ public class RecordService extends Service {
                     }
                     if (mSampling && mLastTimeAboveMin != null) {
                         long timeDiff = now - mLastTimeAboveMin;
-                        // if recording was started AND level has stayed below min level for at least a second -> stop
-                        if (timeDiff > 1000 && amp < mMinLevel) {
+                        // if recording was started AND level has stayed below min level for at least 2 seconds -> stop
+                        if (timeDiff > 2000 && amp < mMinLevel) {
                             stopSampling();
                             mSampling = false;
                             mLastTimeAboveMin = null;
                         }
                     }
                     // make sure recordings don't exceed the max recording length
-                    if (mSampling && now - mSampleStartTime > 10000) {
+                    if (mSampling && now - mSampleStartTime > 25000) {
                         stopSampling();
                         mSampling = false;
                         mLastTimeAboveMin = null;

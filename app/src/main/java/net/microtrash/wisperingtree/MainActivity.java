@@ -46,13 +46,6 @@ public class MainActivity extends ActionBarActivity
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
-    }
-
-
-
-    @Override
     public void onNavigationDrawerItemSelected(int position) {
         // update the main content by replacing fragments
         FragmentManager fragmentManager = getSupportFragmentManager();
