@@ -4,6 +4,7 @@ import com.activeandroid.Model;
 import com.activeandroid.annotation.Column;
 import com.activeandroid.annotation.Table;
 
+import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -13,7 +14,7 @@ import java.util.Locale;
  * Created by steph on 5/1/15.
  */
 @Table(name = "LogMessage")
-public class LogMessage extends Model {
+public class LogMessage extends Model implements Serializable {
 
     public static SimpleDateFormat dateFormat = new SimpleDateFormat("H:mm:ss", Locale.ENGLISH);
 

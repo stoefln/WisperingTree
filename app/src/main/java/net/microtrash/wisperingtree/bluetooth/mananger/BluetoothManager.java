@@ -11,11 +11,11 @@ import android.util.Log;
 import net.microtrash.wisperingtree.bluetooth.client.BluetoothClient;
 import net.microtrash.wisperingtree.bluetooth.server.BluetoothServer;
 import net.microtrash.wisperingtree.bus.BondedDevice;
-
 import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Static;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,6 +29,15 @@ public class BluetoothManager extends BroadcastReceiver {
 
 
     private OnFileReceivedListener mOnFileReceivedListener;
+    private Thread mMonitServerThread;
+    private boolean mMonitServerConnected;
+    private BluetoothServer mMonitServer;
+
+    public void sendToMonitClient(Serializable object) {
+        if(mMonitServerConnected){
+            mMonitServer.sendObject(object);
+        }
+    }
 
     public enum TypeBluetooth {
         Client,
@@ -59,6 +68,7 @@ public class BluetoothManager extends BroadcastReceiver {
     private HashMap<String, BluetoothServer> mServeurWaitingConnectionList;
     private ArrayList<BluetoothServer> mClientConnectors;
     private HashMap<String, Thread> mServeurThreadList;
+
     private int mNbrClientConnection;
     public TypeBluetooth mType;
     private int mTimeDiscoverable;
@@ -87,7 +97,7 @@ public class BluetoothManager extends BroadcastReceiver {
         //setTimeDiscoverable(BLUETOOTH_TIME_DICOVERY_300_SEC);
     }
 
-    public int getConnectedClientNum() {
+    public int getClientConnectorsNum() {
         return mClientConnectors == null ? 0 : mClientConnectors.size();
     }
 
@@ -252,7 +262,26 @@ public class BluetoothManager extends BroadcastReceiver {
         }
     }
 
+    public void createMonitServer(String address) {
+        if(mMonitServer != null){
+            mMonitServer.closeConnection();
+        }
+        if(mMonitServerThread != null){
+            mMonitServerThread.interrupt();
+        }
+        mMonitServer = new BluetoothServer(mBluetoothAdapter, address, mLogger);
+        mMonitServerThread = new Thread(mMonitServer);
+        mMonitServerThread.start();
+        setServerWaitingConnection(address, mMonitServer, mMonitServerThread);
+        IntentFilter bondStateIntent = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        mActivity.registerReceiver(this, bondStateIntent);
+    }
+
     public void onServerConnectionSuccess(String addressClientConnected) {
+        if(addressClientConnected.equals(Static.MONITOR_MAC)){
+            mMonitServerConnected = true;
+            return;
+        }
         for (Map.Entry<String, BluetoothServer> bluetoothServerMap : mServeurWaitingConnectionList.entrySet()) {
             if (addressClientConnected.equals(bluetoothServerMap.getValue().getClientAddress())) {
                 mClientConnectors.add(bluetoothServerMap.getValue());
@@ -264,6 +293,10 @@ public class BluetoothManager extends BroadcastReceiver {
     }
 
     public void onServerConnectionFailed(String addressClientConnectionFailed) {
+        if(addressClientConnectionFailed.equals(Static.MONITOR_MAC)){
+            mMonitServerConnected = false;
+            return;
+        }
         int index = 0;
         for (BluetoothServer bluetoothServer : mClientConnectors) {
             if (addressClientConnectionFailed.equals(bluetoothServer.getClientAddress())) {
@@ -279,19 +312,6 @@ public class BluetoothManager extends BroadcastReceiver {
                 return;
             }
             index++;
-        }
-    }
-
-    public void sendMessage(String message) {
-        if (mType != null && isConnected) {
-            if (mClientConnectors != null) {
-                for (int i = 0; i < mClientConnectors.size(); i++) {
-                    mClientConnectors.get(i).write(message);
-                }
-            }
-            if (mServerConnector != null) {
-                mServerConnector.write(message);
-            }
         }
     }
 
@@ -357,6 +377,13 @@ public class BluetoothManager extends BroadcastReceiver {
             }
         }
         mClientConnectors.clear();
+
+        if(mMonitServer != null) {
+            mMonitServer.closeConnection();
+        }
+        if(mMonitServerThread != null){
+            mMonitServerThread.interrupt();
+        }
     }
 
     public void resetClient() {

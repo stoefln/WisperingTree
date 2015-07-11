@@ -2,8 +2,9 @@ package net.microtrash.wisperingtree.bus;
 
 
 import java.io.File;
+import java.io.Serializable;
 
-public class FileSentToClient {
+public class FileSentToClient implements Serializable {
     File mFile;
 
     public File getFile() {

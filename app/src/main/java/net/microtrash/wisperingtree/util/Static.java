@@ -14,9 +14,11 @@ public class Static {
     public static final String KEY_MAX_NOISE_VALUE = "max_noise_value";
     public static final String BACKUP_DIR_NAME = "backup";
     public static final String KEY_FILES_TRANSFERRED = "files_transferred";
+
     private static Hashtable<String, String> mClients;
 
     public static final String SERVER_MAC = "78:F7:BE:5E:60:54";
+    public static final String MONITOR_MAC = "E4:12:1D:B4:DF:C5";
 
     public static Hashtable<String, String> getClients() {
         if (mClients == null) {

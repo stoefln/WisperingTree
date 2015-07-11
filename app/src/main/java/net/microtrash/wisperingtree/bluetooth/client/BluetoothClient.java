@@ -8,12 +8,13 @@ import android.os.Looper;
 import android.util.Log;
 
 import net.microtrash.wisperingtree.bluetooth.mananger.BluetoothManager;
-import net.microtrash.wisperingtree.bus.BluetoothCommunicator;
 import net.microtrash.wisperingtree.bus.ClientConnectionFail;
 import net.microtrash.wisperingtree.bus.ClientConnectionSuccess;
+import net.microtrash.wisperingtree.bus.LogMessage;
 import net.microtrash.wisperingtree.bus.ProgressStatusChange;
 import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Protocol;
+import net.microtrash.wisperingtree.util.Tools;
 import net.microtrash.wisperingtree.util.Utils;
 
 import java.io.File;
@@ -23,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.Serializable;
 import java.util.UUID;
 
 import de.greenrobot.event.EventBus;
@@ -32,6 +34,8 @@ import de.greenrobot.event.EventBus;
  */
 public class BluetoothClient implements Runnable {
 
+    private static final int RECEIVE_TYPE_FILE = 1;
+    private static final int RECEIVE_TYPE_OBJECT = 2;
     private boolean mRunning = true;
 
     private BluetoothAdapter mBluetoothAdapter;
@@ -44,12 +48,14 @@ public class BluetoothClient implements Runnable {
     private OutputStreamWriter mOutputStreamWriter;
 
     private BluetoothConnector mBluetoothConnector;
-    private boolean mReceiveFile = false;
     private LoggerInterface mLogger;
     private String mReceiveFilename;
     private long mReceiveFileLength;
     private BluetoothManager.OnFileReceivedListener mOnFileReceivedListener;
     private boolean mReceiveCommand = false;
+    private boolean mReceiveObject = false;
+    private String mReceiveClassName;
+    private int mReceive;
 
     public void setLogger(LoggerInterface logger) {
         mLogger = logger;
@@ -109,7 +115,7 @@ public class BluetoothClient implements Runnable {
             while (mRunning) {
 
                 String command = "";
-                if (!mReceiveFile) {
+                if (mReceive == 0) {
 
                     while (mRunning) {
                         ch = (char) mInputStream.read();
@@ -118,7 +124,6 @@ public class BluetoothClient implements Runnable {
                             mReceiveCommand = true;
                         }
                         if (mReceiveCommand) {
-                            //mLogger.log("receiving byte", ""+new String(stringBuffer, 0, bytesRead)+" command end:"+);
                             if (!checkCommand(command)) {
                                 command = "";
                                 mReceiveCommand = false;
@@ -130,7 +135,7 @@ public class BluetoothClient implements Runnable {
                             if (ch == Protocol.COMMAND_END) {
                                 mReceiveCommand = false;
                                 // parse command
-                                mLogger.log("command complete: " + String.valueOf(ch));
+                                //mLogger.log("command complete: " + String.valueOf(ch));
                                 break;
                             } else {
                                 command += ch;
@@ -139,7 +144,7 @@ public class BluetoothClient implements Runnable {
                         }
                     }
 
-                } else {
+                } else if (mReceive == RECEIVE_TYPE_FILE) {
                     mLogger.log("receiving file", mReceiveFilename);
 
                     int c = 0;
@@ -168,23 +173,64 @@ public class BluetoothClient implements Runnable {
                         });
 
                     }
-                    mReceiveFile = false;
+                    mReceive = 0;
                     mReceiveFilename = null;
 
+                } else if (mReceive == RECEIVE_TYPE_OBJECT) {
+
+                    long bRead = 0;
+                    String serialized = "";
+                    while (mRunning) {
+                        ch = (char) mInputStream.read();
+                        serialized += ch;
+                        bRead++;
+                        if(bRead >= mReceiveFileLength){
+                            break;
+                        }
+                    }
+
+                    try {
+                        Serializable object = (Serializable) Tools.deserialize(serialized);
+                        if (mReceiveClassName.equals(LogMessage.class.getSimpleName())) {
+                            LogMessage msg = (LogMessage) object;
+                            msg.setText("Monit: " + msg.getText());
+                            EventBus.getDefault().post(msg);
+                        }else{
+                            EventBus.getDefault().post(object);
+                        }
+
+                    } catch (ClassNotFoundException e) {
+                        mLogger.log(e.getMessage());
+                        e.printStackTrace();
+                    }
+
+                    mReceive = 0;
+                    mReceiveClassName = null;
                 }
-                mLogger.log("check command: " + command);
+
+                //mLogger.log("check command: " + command);
                 if (command.startsWith(Protocol.COMMAND_START + Protocol.COMMAND_SEND_FILE)) {
                     try {
                         mLogger.log("command: ", command);
                         String[] commandArray = command.split(Protocol.SEPARATOR);
-                        mReceiveFile = true;
+                        mReceive = RECEIVE_TYPE_FILE;
                         mReceiveFilename = commandArray[1];
                         mReceiveFileLength = Long.parseLong(commandArray[2]);
                     } catch (Exception e) {
                         mLogger.log("Protocoll exception command could not be parsed:" + command);
                     }
+                } else if (command.startsWith(Protocol.COMMAND_START + Protocol.COMMAND_SEND_OBJECT)) {
+                    try {
+                        //mLogger.log("command: ", command);
+                        String[] commandArray = command.split(Protocol.SEPARATOR);
+                        mReceive = RECEIVE_TYPE_OBJECT;
+                        mReceiveClassName = commandArray[1];
+                        mReceiveFileLength = Long.parseLong(commandArray[2]);
+                    } catch (Exception e) {
+                        mLogger.log("Protocoll exception command could not be parsed:" + command);
+                    }
                 } else {
-                    EventBus.getDefault().post(new BluetoothCommunicator(command));
+                    //EventBus.getDefault().post(new BluetoothCommunicator(command));
                 }
 
             }
@@ -202,9 +248,9 @@ public class BluetoothClient implements Runnable {
             //mLogger.log("command too long: " + command.length());
             return false;
         }
-        if (command.length() >= Protocol.COMMAND_START.length()){
+        if (command.length() >= Protocol.COMMAND_START.length()) {
             //mLogger.log("command long" + command.length());
-            if(!command.startsWith(Protocol.COMMAND_START)) {
+            if (!command.startsWith(Protocol.COMMAND_START)) {
                 //mLogger.log("command not valid: " + command);
                 return false;
             }

@@ -11,6 +11,7 @@ import net.microtrash.wisperingtree.bus.ServerConnectionFail;
 import net.microtrash.wisperingtree.bus.ServerConnectionSuccess;
 import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Protocol;
+import net.microtrash.wisperingtree.util.Tools;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -19,6 +20,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.UUID;
 
@@ -125,14 +127,25 @@ public class BluetoothServer implements Runnable {
         is.close();
     }
 
-    public void write(String message) {
+    public void sendObject(Serializable object) {
         try {
-            if (mOutputStreamWriter != null) {
-                mOutputStreamWriter.write(message);
-                mOutputStreamWriter.flush();
-            }
+            String serialized = Tools.serialize(object);
+            int totalLength = serialized.toCharArray().length;
+            String command = Protocol.COMMAND_START + Protocol.COMMAND_SEND_OBJECT + Protocol.SEPARATOR + object.getClass().getSimpleName() + Protocol.SEPARATOR + totalLength + Protocol.COMMAND_END;
+
+            write(command);
+            write(serialized);
         } catch (IOException e) {
             e.printStackTrace();
+            EventBus.getDefault().post(new ServerConnectionFail(mClientAddress));
+        }
+    }
+
+    public void write(String message) throws IOException {
+
+        if (mOutputStreamWriter != null) {
+            mOutputStreamWriter.write(message);
+            mOutputStreamWriter.flush();
         }
     }
 
@@ -171,4 +184,6 @@ public class BluetoothServer implements Runnable {
             }
         }
     }
+
+
 }

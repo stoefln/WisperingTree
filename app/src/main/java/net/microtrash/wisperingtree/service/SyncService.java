@@ -8,13 +8,19 @@ import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
+import android.util.Log;
 
 import net.microtrash.wisperingtree.bluetooth.mananger.BluetoothManager;
 import net.microtrash.wisperingtree.bluetooth.server.BluetoothServer;
+import net.microtrash.wisperingtree.bus.AudioLevelChanged;
 import net.microtrash.wisperingtree.bus.ClientConnectionFail;
 import net.microtrash.wisperingtree.bus.ClientConnectionSuccess;
 import net.microtrash.wisperingtree.bus.FileSentToClient;
 import net.microtrash.wisperingtree.bus.FileSentToClientFail;
+import net.microtrash.wisperingtree.bus.LogMessage;
+import net.microtrash.wisperingtree.bus.ProgressStatusChange;
+import net.microtrash.wisperingtree.bus.SamplingStart;
+import net.microtrash.wisperingtree.bus.SamplingStop;
 import net.microtrash.wisperingtree.bus.ServerConnectionFail;
 import net.microtrash.wisperingtree.bus.ServerConnectionSuccess;
 import net.microtrash.wisperingtree.util.Logger;
@@ -37,12 +43,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
     private boolean mRunning = false;
     private int mFilesCurrentlySending = 0;
 
-    //private final IBinder mBinder = new LocalBinder();
-
-
     IBinder mBinder = new LocalBinder();
-    private Thread mThread;
-
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -69,7 +70,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         mLogger = Logger.getInstance();
 
         mFilesSent = (Hashtable<String, File>) Tools.getPreferenceSerializable(getBaseContext(), Static.KEY_FILES_TRANSFERRED);
-        if(mFilesSent == null){
+        if (mFilesSent == null) {
             mFilesSent = new Hashtable<>();
         }
 
@@ -91,8 +92,6 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
                 startClient(0);
             }
         }
-
-
     }
 
     public void startServer() {
@@ -100,10 +99,11 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_3600_SEC);
         selectServerMode();
 
-
         for (String mac : Static.getClients().keySet()) {
-            createServerForClient(Static.getClients().get(mac), mac);
+            createServerForClient(mac);
         }
+
+        createServerForClient(Static.MONITOR_MAC);
     }
 
 
@@ -115,7 +115,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
     public void startClient(int delay) {
         log("Start Client ! Your mac address : " + mBluetoothManager.getYourBtMacAddress());
         setTimeDiscoverable(BluetoothManager.BLUETOOTH_TIME_DICOVERY_120_SEC);
-        selectClientMode();
+        mBluetoothManager.selectClientMode();
 
         new Handler().postDelayed(new Runnable() {
             @Override
@@ -138,9 +138,15 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(file)));
     }
 
-    void createServerForClient(String name, String mac) {
-        log("Creating server for client \"" + name + "\" address " + mac + "...");
-        mBluetoothManager.createServer(mac);
+    void createServerForClient(String mac) {
+        if (mac.equals(Static.MONITOR_MAC)) {
+            log("Creating server for Monitor with address " + mac + "...");
+            mBluetoothManager.createMonitServer(mac);
+        } else {
+            String name = Static.getClients().get(mac);
+            log("Creating server for client \"" + name + "\" address " + mac + "...");
+            mBluetoothManager.createServer(mac);
+        }
     }
 
     private void startFileTransfer() {
@@ -154,14 +160,14 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
                     while (mRunning) {
                         Thread.sleep(1000);
 
-                        if(mFilesCurrentlySending < 0){
-                            mLogger.log("!!!mFilesCurrentlySending: "+mFilesCurrentlySending);
+                        if (mFilesCurrentlySending < 0) {
+                            mLogger.log("!!!mFilesCurrentlySending: " + mFilesCurrentlySending);
                             mFilesCurrentlySending = 0;
                         }
                         if (mFilesCurrentlySending > 0) {
                             continue;
                         }
-                        if (mBluetoothManager.getConnectedClientNum() > 0) {
+                        if (mBluetoothManager.getClientConnectorsNum() > 0) {
                             File rootDir = new File(Utils.getAppRootDir());
                             boolean newFileSent = false;
                             for (File file : rootDir.listFiles()) {
@@ -177,7 +183,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
                                     break;
                                 }
                             }
-                            if(!newFileSent) {
+                            if (!newFileSent) {
                                 log("Files transferred, check again in 5 sek...");
                                 Thread.sleep(5000);
                             }
@@ -202,6 +208,7 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         String key = file.getName() + file.lastModified();
         mFilesSent.put(key, file);
         mFilesCurrentlySending--;
+        mBluetoothManager.sendToMonitClient(event);
     }
 
     public void onEvent(FileSentToClientFail event) {
@@ -209,11 +216,16 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
     }
 
     public void onServerConnectionFail(String clientAdressConnectionFail) {
-        log("Client connection lost to "+Static.getClients().get(clientAdressConnectionFail));
+
+        String name = "";
+        if(clientAdressConnectionFail.equals(Static.MONITOR_MAC)) {
+            name = "Monit";
+        } else {
+            name = Static.getClients().get(clientAdressConnectionFail);
+        }
+        log("Client connection lost to " + name);
         if (mRunning) {
-            String clientName = Static.getClients().get(clientAdressConnectionFail);
-            createServerForClient(clientName, clientAdressConnectionFail);
-            // check for other mClients who could pick up file transfers
+            createServerForClient(clientAdressConnectionFail);
         }
     }
 
@@ -231,36 +243,8 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         mBluetoothManager.setTimeDiscoverable(timeInSec);
     }
 
-    public void startDiscovery() {
-        mBluetoothManager.startDiscovery();
-    }
-
-    public boolean isConnected() {
-        return mBluetoothManager.isConnected;
-    }
-
-    public void scanAllBluetoothDevice() {
-        mBluetoothManager.scanAllBluetoothDevice();
-    }
-
-    public void disconnectClient() {
-        mBluetoothManager.disconnectClient();
-    }
-
-    public void disconnectServer() {
-        mBluetoothManager.disconnectServer();
-    }
-
-    public void createServer(String address) {
-        mBluetoothManager.createServer(address);
-    }
-
     public void selectServerMode() {
         mBluetoothManager.selectServerMode();
-    }
-
-    public void selectClientMode() {
-        mBluetoothManager.selectClientMode();
     }
 
     public BluetoothManager.TypeBluetooth getTypeBluetooth() {
@@ -275,20 +259,41 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         mBluetoothManager.createClient(addressMac);
     }
 
-    public void sendMessage(String message) {
-        mBluetoothManager.sendMessage(message);
+    public void onEvent(LogMessage message) {
+        mBluetoothManager.sendToMonitClient(message);
     }
 
+    public void onEvent(AudioLevelChanged object) {
+        mBluetoothManager.sendToMonitClient(object);
+    }
 
-    public void onEventMainThread(ClientConnectionSuccess event) {
+    public void onEvent(SamplingStart object) {
+        mBluetoothManager.sendToMonitClient(object);
+    }
+
+    public void onEvent(SamplingStop object) {
+        mBluetoothManager.sendToMonitClient(object);
+    }
+
+    int i = 0;
+
+    public void onEvent(ProgressStatusChange object) {
+        if (i % 10 == 0) {
+            Log.v("SyncService", "status change " + object.getProgress());
+            mBluetoothManager.sendToMonitClient(object);
+        }
+        i++;
+    }
+
+    public void onEvent(ClientConnectionSuccess event) {
         mBluetoothManager.isConnected = true;
-        log("Client connection success !");
+        log("Client connection success!");
     }
 
-    public void onEventMainThread(ClientConnectionFail event) {
+    public void onEvent(ClientConnectionFail event) {
         mBluetoothManager.isConnected = false;
         mBluetoothManager.disconnectClient();
-        log("Client connection fail !");
+        log("Client connection fail!");
         // try to reconnect
         startClient(5000);
     }

@@ -1,8 +1,6 @@
 package net.microtrash.wisperingtree.fragment;
 
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -62,7 +60,7 @@ public class LogFragment extends Fragment {
     /**
      * called by bus
      */
-    public void onEvent(LogMessage message) {
+    public void onEventMainThread(LogMessage message) {
         mListLog.add(message.toString());
         mAdapter.notifyDataSetChanged();
         if (mListView != null && !mTouchScrolling && mAutoScroll) {
@@ -74,7 +72,7 @@ public class LogFragment extends Fragment {
     /**
      * called by bus
      */
-    public void onEvent(LogReset event) {
+    public void onEventMainThread(LogReset event) {
         mListLog.clear();
         mAdapter.notifyDataSetChanged();
     }
@@ -82,18 +80,12 @@ public class LogFragment extends Fragment {
     /**
      * called by bus
      */
-    public void onEvent(final ProgressStatusChange event) {
-        new Handler(Looper.getMainLooper()).post(new Runnable() {
-            @Override
-            public void run() {
-                float width = (float) ((View) mProgressBar.getParent()).getWidth() * event.getProgress();
-                mProgressBar.getLayoutParams().width = (int) width;
-                mProgressBar.requestLayout();
-                mProgressBarText.setText(event.getText());
-            }
-        });
+    public void onEventMainThread(ProgressStatusChange event) {
+        float width = (float) ((View) mProgressBar.getParent()).getWidth() * event.getProgress();
+        mProgressBar.getLayoutParams().width = (int) width;
+        mProgressBar.requestLayout();
+        mProgressBarText.setText(event.getText());
     }
-
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
@@ -129,7 +121,7 @@ public class LogFragment extends Fragment {
             public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
                 final int lastItem = firstVisibleItem + visibleItemCount;
                 mAutoScroll = false;
-                if (lastItem == totalItemCount) {
+                if (lastItem >= totalItemCount) {
 
                     if (preLast != lastItem) { //to avoid multiple calls for last item
                         preLast = lastItem;
