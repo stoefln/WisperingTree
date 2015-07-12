@@ -1,5 +1,6 @@
 package net.microtrash.wisperingtree;
 
+import android.bluetooth.BluetoothAdapter;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -16,6 +17,7 @@ import net.microtrash.wisperingtree.bus.LogMessage;
 import net.microtrash.wisperingtree.bus.LogReset;
 import net.microtrash.wisperingtree.fragment.PlayFragment;
 import net.microtrash.wisperingtree.fragment.RecordFragment;
+import net.microtrash.wisperingtree.util.Static;
 
 import de.greenrobot.event.EventBus;
 
@@ -43,6 +45,12 @@ public class MainActivity extends ActionBarActivity
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
 
+        String mac = BluetoothAdapter.getDefaultAdapter().getAddress();
+        if (mac.equals(Static.MONITOR_MAC) || mac.equals(Static.SERVER_MAC)) {
+            mNavigationDrawerFragment.selectItem(1);
+        } else {
+            mNavigationDrawerFragment.selectItem(0);
+        }
     }
 
     @Override
@@ -50,8 +58,8 @@ public class MainActivity extends ActionBarActivity
         // update the main content by replacing fragments
         FragmentManager fragmentManager = getSupportFragmentManager();
         Fragment fragment = null;
-        switch (position){
-            case  0:
+        switch (position) {
+            case 0:
                 fragment = PlayFragment.newInstance();
                 break;
             case 1:
@@ -60,13 +68,12 @@ public class MainActivity extends ActionBarActivity
 
         }
 
-        if(fragment != null) {
+        if (fragment != null) {
             fragmentManager.beginTransaction()
                     .replace(R.id.container, fragment)
                     .commit();
         }
     }
-
 
 
     @Override
@@ -98,7 +105,6 @@ public class MainActivity extends ActionBarActivity
 
         return super.onOptionsItemSelected(item);
     }
-
 
 
 }

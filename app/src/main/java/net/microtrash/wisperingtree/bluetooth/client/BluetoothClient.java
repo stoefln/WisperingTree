@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.Serializable;
 import java.util.UUID;
 
 import de.greenrobot.event.EventBus;
@@ -125,9 +124,9 @@ public class BluetoothClient implements Runnable {
                         }
                         if (mReceiveCommand) {
                             if (!checkCommand(command)) {
+                                mLogger.log("Invalid command: \"" + command + "\"");
                                 command = "";
                                 mReceiveCommand = false;
-                                mLogger.log("Invalid command: \"" + command + "\"");
                                 EventBus.getDefault().post(new ClientConnectionFail());
                                 return;
                             }
@@ -190,17 +189,23 @@ public class BluetoothClient implements Runnable {
                     }
 
                     try {
-                        Serializable object = (Serializable) Tools.deserialize(serialized);
-                        if (mReceiveClassName.equals(LogMessage.class.getSimpleName())) {
-                            LogMessage msg = (LogMessage) object;
-                            msg.setText("Monit: " + msg.getText());
-                            EventBus.getDefault().post(msg);
-                        }else{
-                            EventBus.getDefault().post(object);
+                        Object object = Tools.deserialize(serialized);
+                        if(object != null) {
+                            if (mReceiveClassName.equals(LogMessage.class.getSimpleName())) {
+                                LogMessage msg = (LogMessage) object;
+                                msg.setText("Monit: " + msg.getText());
+                                EventBus.getDefault().post(msg);
+                            } else {
+                                EventBus.getDefault().post(object);
+                            }
+                        } else {
+                            Log.e("BluetoothClient", "Error while deserializing: "+serialized);
                         }
 
-                    } catch (ClassNotFoundException e) {
-                        mLogger.log(e.getMessage());
+                    } catch (Exception e) {
+                        if(e.getMessage() != null) {
+                            mLogger.log(e.getMessage());
+                        }
                         e.printStackTrace();
                     }
 

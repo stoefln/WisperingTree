@@ -114,13 +114,17 @@ public class SyncFragment extends Fragment {
 
 
     public void onEventMainThread(ServerConnectionFail event) {
-        View view = mDevices.get(event.mClientAdressConnectionFail);
-        view.setActivated(false);
+        if(!event.mClientAdressConnectionFail.equals(Static.MONITOR_MAC)) {
+            View view = mDevices.get(event.mClientAdressConnectionFail);
+            view.setActivated(false);
+        }
     }
 
     public void onEventMainThread(ServerConnectionSuccess event) {
-        View view = mDevices.get(event.mClientAdressConnected);
-        view.setActivated(true);
+        if(!event.mClientAdressConnected.equals(Static.MONITOR_MAC)) {
+            View view = mDevices.get(event.mClientAdressConnected);
+            view.setActivated(true);
+        }
     }
 
 
