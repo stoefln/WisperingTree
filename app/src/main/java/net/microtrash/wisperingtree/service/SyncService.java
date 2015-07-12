@@ -8,7 +8,6 @@ import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
-import android.util.Log;
 
 import net.microtrash.wisperingtree.bluetooth.mananger.BluetoothManager;
 import net.microtrash.wisperingtree.bluetooth.server.BluetoothServer;
@@ -275,22 +274,21 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         mBluetoothManager.sendToMonitClient(object);
     }
 
-    int i = 0;
-
+    int mProgressStatusChangeCounter = 0;
     public void onEvent(ProgressStatusChange object) {
-        if (i % 10 == 0) {
-            Log.v("SyncService", "status change " + object.getProgress());
+        if (mProgressStatusChangeCounter >= 10 || object.getProgress() > 0.9) {
             mBluetoothManager.sendToMonitClient(object);
+            mProgressStatusChangeCounter = 0;
         }
-        i++;
+        mProgressStatusChangeCounter++;
     }
 
-    public void onEvent(ClientConnectionSuccess event) {
+    public void onEventMainThread(ClientConnectionSuccess event) {
         mBluetoothManager.isConnected = true;
         log("Client connection success!");
     }
 
-    public void onEvent(ClientConnectionFail event) {
+    public void onEventMainThread(ClientConnectionFail event) {
         mBluetoothManager.isConnected = false;
         mBluetoothManager.disconnectClient();
         log("Client connection fail!");

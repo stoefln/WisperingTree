@@ -280,6 +280,7 @@ public class BluetoothManager extends BroadcastReceiver {
     public void onServerConnectionSuccess(String addressClientConnected) {
         if(addressClientConnected.equals(Static.MONITOR_MAC)){
             mMonitServerConnected = true;
+            mLogger.log("Connection established to Monit");
             return;
         }
         for (Map.Entry<String, BluetoothServer> bluetoothServerMap : mServeurWaitingConnectionList.entrySet()) {
@@ -295,6 +296,7 @@ public class BluetoothManager extends BroadcastReceiver {
     public void onServerConnectionFailed(String addressClientConnectionFailed) {
         if(addressClientConnectionFailed.equals(Static.MONITOR_MAC)){
             mMonitServerConnected = false;
+            mLogger.log("onServerConnectionFailed to Monit");
             return;
         }
         int index = 0;
@@ -308,7 +310,7 @@ public class BluetoothManager extends BroadcastReceiver {
                 mServeurThreadList.remove(addressClientConnectionFailed);
                 mAdressListServerWaitingConnection.remove(addressClientConnectionFailed);
                 decrementNbrConnection();
-                mLogger.log("onServerConnectionFailed address : " + Static.getClients().get(addressClientConnectionFailed));
+                mLogger.log("onServerConnectionFailed to " + Static.getClients().get(addressClientConnectionFailed));
                 return;
             }
             index++;
