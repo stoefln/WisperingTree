@@ -1,8 +1,10 @@
 package net.microtrash.wisperingtree.fragment;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import android.support.v7.widget.SwitchCompat;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,6 +16,7 @@ import net.microtrash.wisperingtree.bus.AudioPeakDetectionChanged;
 import net.microtrash.wisperingtree.bus.SamplingStart;
 import net.microtrash.wisperingtree.bus.SamplingStop;
 import net.microtrash.wisperingtree.service.RecordService;
+import net.microtrash.wisperingtree.util.LightsAnimator;
 import net.microtrash.wisperingtree.util.Static;
 import net.microtrash.wisperingtree.util.Tools;
 import net.microtrash.wisperingtree.util.Utils;
@@ -22,6 +25,7 @@ import net.microtrash.wisperingtree.view.RangeSeekBar;
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 import de.greenrobot.event.EventBus;
+import tv.piratemedia.lightcontroler.controlCommands;
 
 
 public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeekBarChangeListener {
@@ -73,6 +77,22 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
     public void onResume() {
         super.onResume();
         mEnableRecordSwitch.setChecked(Utils.isServiceRunning(getActivity(), RecordService.class));
+
+        FragmentActivity ctx = getActivity();
+        final controlCommands c = new controlCommands(ctx, null);
+        //c.LightsOn(1);
+        //c.setColor(1, Color.argb(255, 0, 255, 0));
+        LightsAnimator la = new LightsAnimator(c, 2);
+        la.fadeToColor(Color.argb(255, 255, 255, 0));
+        LightsAnimator la2 = new LightsAnimator(c, 1);
+        la.fadeToColor(Color.argb(255, 255, 255, 0));
+        mEnableRecordSwitch.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                //c.setColor(1, Color.argb(255, 0, 0, 255));
+
+            }
+        }, 1000);
     }
 
 
