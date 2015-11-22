@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import net.microtrash.wisperingtree.R;
+import net.microtrash.wisperingtree.bus.AdaptiveThresholdChanged;
 import net.microtrash.wisperingtree.bus.AudioLevelChanged;
 import net.microtrash.wisperingtree.bus.AudioPeakDetectionChanged;
 import net.microtrash.wisperingtree.bus.SamplingStart;
@@ -120,6 +121,11 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
             }
         });
 
+    }
+
+    public void onEventMainThread(AdaptiveThresholdChanged event){
+        mAudioLevelBar.setSelectedMinValue(event.getMinLevel());
+        mAudioLevelBar.setSelectedMaxValue(event.getMaxLevel());
     }
 
     public void onEventMainThread(AudioLevelChanged event) {

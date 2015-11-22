@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.IBinder;
 
 import net.microtrash.wisperingtree.AudioRecorder;
+import net.microtrash.wisperingtree.bus.AdaptiveThresholdChanged;
 import net.microtrash.wisperingtree.bus.AudioLevelChanged;
 import net.microtrash.wisperingtree.bus.AudioPeakDetectionChanged;
 import net.microtrash.wisperingtree.bus.SamplingStart;
@@ -26,11 +27,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Hashtable;
+import java.util.LinkedList;
 
 import de.greenrobot.event.EventBus;
 
 public class RecordService extends Service {
 
+    private static final int MAX_AMP_BUFFER_SIZE = 100;
     private LoggerInterface mLogger;
 
     private int mRecNum;
@@ -40,7 +43,7 @@ public class RecordService extends Service {
     private Handler mHandler;
     private static final String LOG_TAG = "AudioRecordTest";
     private AudioRecorder mRecorder = null;
-
+    private LinkedList<Integer> mMaxAmpBuffer = new LinkedList<>();
     private final static int[][] sampleRates =
             {
                     {22050, 44100, 11025, 8000},
@@ -114,17 +117,20 @@ public class RecordService extends Service {
             @Override
             public void run() {
                 if (mRecorder != null) {
-                    int amp = mRecorder.getMaxAmplitude();
-                    //Log.v("RecordService", "vol: " + amp + " state: " + mRecorder.getState());
 
-                    //mAudioLevelBar.getAbsoluteMaxValue(30000);
-                    float normalizedLevel = (float) amp / (float) 15000;
+                    int amp = mRecorder.getMaxAmplitude();
 
                     if (amp > mMaxLevel && !mSampling) {
                         //Log.v(TAG, "vol: " + amp + " normalized: " + normalizedLevel);
+                        mMaxAmpBuffer.clear();
                         startSampling();
                         mSampling = true;
                     }
+
+                    if (!mSampling) {
+                        tuneAdaptiveThreshold(amp);
+                    }
+
                     long now = System.currentTimeMillis();
                     if (amp > mMinLevel) {
                         mLastTimeAboveMin = now;
@@ -143,6 +149,11 @@ public class RecordService extends Service {
                         stopSampling();
                         mSampling = false;
                         mLastTimeAboveMin = null;
+                        // threshold might be too low. increase it by 2000
+                        mMinLevel += 2000;
+                        setMaxLevelByMinLevel();
+                        mLogger.log("Loooong sample! Adaptive threshold increased to " + mMinLevel + " \t" + mMaxLevel);
+                        EventBus.getDefault().post(new AdaptiveThresholdChanged(mMinLevel, mMaxLevel));
                     }
                     EventBus.getDefault().post(new AudioLevelChanged(amp));
                     observeAudio();
@@ -150,6 +161,35 @@ public class RecordService extends Service {
             }
         }, 50);
 
+    }
+
+    private void tuneAdaptiveThreshold(int amp) {
+        // adaptive threshold:
+        // if no recording happened in the last 20 seconds, check the last 20 seconds of maxAmplitudes and set the upper threshold 4 db above and the lower threshold 2 db above
+        mMaxAmpBuffer.add(amp);
+
+        if(mMaxAmpBuffer.size() > MAX_AMP_BUFFER_SIZE){
+            int max = 0;
+            for (Integer val : mMaxAmpBuffer) {
+                if(max < val){
+                    max = val;
+                }
+            }
+            // bsp: 10 000 - 5000 = 5000
+            int diff = mMinLevel - max;
+            mMinLevel = mMinLevel - diff / 3 + 1000;
+            setMaxLevelByMinLevel();
+
+            mLogger.log("set adaptive threshold to " + mMinLevel + " \t" + mMaxLevel);
+            EventBus.getDefault().post(new AdaptiveThresholdChanged(mMinLevel, mMaxLevel));
+            for (int i = 0; i<= 10; i++) {
+                mMaxAmpBuffer.removeFirst();
+            }
+        }
+    }
+
+    private void setMaxLevelByMinLevel() {
+        mMaxLevel = (int) (mMinLevel * 1.3 + 2000);
     }
 
     private void startSampling() {
