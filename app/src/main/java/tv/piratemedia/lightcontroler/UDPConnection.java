@@ -34,12 +34,14 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
+import java.util.LinkedList;
 
 public class UDPConnection {
     private static final String TAG = "UDPConnection";
     public static String CONTROLLERIP = "";
     public static int CONTROLLERPORT = 0;
     public static int CONTROLLERADMINPORT = 48899;
+    private AsyncTask<Void, Void, Void> mPostMessageTask;
     private utils Utils;
     private UDP_Server server = null;
     private SharedPreferences prefs;
@@ -47,8 +49,12 @@ public class UDPConnection {
     private static Handler mHandler;
     private String NetworkBroadCast;
 
+    private LinkedList<PostMessage> mMessageQueue = new LinkedList<>();
     private boolean onlineMode = false;
     private long mLastMessageSent = 0;
+    private boolean mRunSender = true;
+
+    private DatagramSocket mDatagramSocket;
 
     public UDPConnection(Context context, Handler handler) {
         mCtx = context;
@@ -63,37 +69,72 @@ public class UDPConnection {
             e.printStackTrace();
             return;
         }
+
+        mPostMessageTask = new AsyncTask<Void, Void, Void>() {
+
+            @Override
+            protected Void doInBackground(Void... params) {
+                while (mRunSender) {
+                    if (mMessageQueue.size() > 0) {
+                        PostMessage message = mMessageQueue.removeFirst();
+                        sendMessageNow(message.getData());
+                    }
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        break;
+                    }
+                }
+
+                return null;
+            }
+        };
+        if (Build.VERSION.SDK_INT >= 11) {
+            mPostMessageTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        } else {
+            mPostMessageTask.execute();
+        }
     }
 
     public void setOnlineMode(boolean online) {
         onlineMode = online;
     }
 
-    public void sendMessage(final byte[] Bytes) throws IOException {
+    public void sendMessage(final byte[] bytes) throws IOException {
+        Log.v(TAG, "queuing message...");
+        mMessageQueue.add(new PostMessage(bytes));
+    }
 
-        Log.v(TAG, "sending message...");
-        if(!onlineMode) {
-            CONTROLLERIP = prefs.getString("pref_light_controller_ip", NetworkBroadCast);
-            CONTROLLERPORT = Integer.parseInt(prefs.getString("pref_light_controller_port", "8899"));
-            DatagramSocket s = null;
+
+    private void sendMessageNow(byte[] bytes) {
+
+        CONTROLLERIP = prefs.getString("pref_light_controller_ip", NetworkBroadCast);
+        CONTROLLERPORT = Integer.parseInt(prefs.getString("pref_light_controller_port", "8899"));
+
+        try {
+            InetAddress controller = InetAddress.getByName(CONTROLLERIP);
+            DatagramPacket p = new DatagramPacket(bytes, 3, controller, CONTROLLERPORT);
+            getDatagramSocket().send(p);
+            Log.v(TAG, "sent light command: " + String.valueOf(bytes));
+        } catch (SocketException e) {
+            e.printStackTrace();
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private DatagramSocket getDatagramSocket() {
+        if (mDatagramSocket == null) {
             try {
-                s = new DatagramSocket();
-                InetAddress controller = InetAddress.getByName(CONTROLLERIP);
-                DatagramPacket p = new DatagramPacket(Bytes, 3, controller, CONTROLLERPORT);
-                s.send(p);
-                Log.v(TAG, "sent light command: "+String.valueOf(Bytes));
+                mDatagramSocket = new DatagramSocket();
             } catch (SocketException e) {
                 e.printStackTrace();
-            } catch (UnknownHostException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
             }
-
-        } else {
-            //send message in online mode;
         }
-
+        return mDatagramSocket;
     }
 
     public void sendAdminMessage(byte[] Bytes) throws IOException {
@@ -101,15 +142,15 @@ public class UDPConnection {
     }
 
     public void sendAdminMessage(byte[] Bytes, Boolean Device) throws IOException {
-        if(server == null) {
+        if (server == null) {
             server = new UDP_Server();
             server.runUdpServer();
-        } else if(!server.Server_aktiv) {
+        } else if (!server.Server_aktiv) {
             server.runUdpServer();
         }
 
         String NetworkBroadCast = null;
-        if(Device) {
+        if (Device) {
             CONTROLLERIP = prefs.getString("pref_light_controller_ip", "192.168.0.255");
             NetworkBroadCast = CONTROLLERIP;
         } else {
@@ -129,8 +170,11 @@ public class UDPConnection {
 
     public void destroyUDPC() {
         Log.d("controller", "destroy");
-        if(server != null) {
+        if (server != null) {
             server.stop_UDP_Server();
+        }
+        if (mPostMessageTask != null) {
+            mPostMessageTask.cancel(true);
         }
     }
 
@@ -155,16 +199,16 @@ public class UDPConnection {
                             try {
                                 ds.receive(dp);
                                 String Data = new String(dp.getData());
-                                if(Data.startsWith("+ok")) {
-                                    if(Data.startsWith("+ok=")) {
+                                if (Data.startsWith("+ok")) {
+                                    if (Data.startsWith("+ok=")) {
                                         Message m = new Message();
-                                        m.what = controlCommands.LIST_WIFI_NETWORKS;
+                                        m.what = LightsController.LIST_WIFI_NETWORKS;
                                         m.obj = Data;
                                         mHandler.sendMessage(m);
                                         Server_aktiv = false;
                                     } else {
                                         Message m = new Message();
-                                        m.what = controlCommands.COMMAND_SUCCESS;
+                                        m.what = LightsController.COMMAND_SUCCESS;
                                         mHandler.sendMessage(m);
                                         Server_aktiv = false;
                                     }
@@ -173,14 +217,14 @@ public class UDPConnection {
                                     if (parts.length > 1) {
                                         if (Utils.validIP(parts[0]) && Utils.validMac(parts[1])) {
                                             Message m = new Message();
-                                            m.what = controlCommands.DISCOVERED_DEVICE;
+                                            m.what = LightsController.DISCOVERED_DEVICE;
                                             m.obj = parts;
                                             mHandler.sendMessage(m);
                                             Server_aktiv = false;
                                         }
                                     }
                                 }
-                            } catch(SocketTimeoutException e) {
+                            } catch (SocketTimeoutException e) {
                                 //no problem
                             }
                         }
@@ -203,6 +247,18 @@ public class UDPConnection {
 
         public void stop_UDP_Server() {
             Server_aktiv = false;
+        }
+    }
+
+    public class PostMessage {
+        byte[] mData;
+
+        public PostMessage(byte[] bytes) {
+            this.mData = bytes;
+        }
+
+        public byte[] getData() {
+            return mData;
         }
     }
 }

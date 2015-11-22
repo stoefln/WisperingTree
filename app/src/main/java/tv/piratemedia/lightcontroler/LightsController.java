@@ -29,10 +29,11 @@ import java.io.IOException;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-public class controlCommands {
+public class LightsController {
     public static final int DISCOVERED_DEVICE = 111;
     public static final int LIST_WIFI_NETWORKS = 802;
     public static final int COMMAND_SUCCESS = 222;
+    private static final String TAG = "LightsController";
 
     private UDPConnection UDPC;
     public int LastOn = -1;
@@ -43,7 +44,7 @@ public class controlCommands {
     public final int[] tolerance = new int[1];
     public SaveState appState = null;
 
-    public controlCommands(Context context, Handler handler) {
+    public LightsController(Context context, Handler handler) {
         UDPC = new UDPConnection(context, handler);
         mContext = context;
         tolerance[0] = 25000;
@@ -117,7 +118,7 @@ public class controlCommands {
         }
     }
 
-    public void LightsOn(int zone) {
+    public void lightsOn(int zone) {
         byte[] messageBA = new byte[3];
         switch(zone) {
             case 0:
@@ -296,7 +297,7 @@ public class controlCommands {
     }
 
     public void setToFull(int zone) {
-        LightsOn(zone);
+        lightsOn(zone);
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -365,7 +366,7 @@ public class controlCommands {
         }
     }
     public void setToNight(int zone) {
-        LightsOn(zone);
+        lightsOn(zone);
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -412,7 +413,7 @@ public class controlCommands {
             brightness = 0;
         }
         if(!sleeping) {
-            LightsOn(zoneid);
+            lightsOn(zoneid);
             byte[] messageBA = new byte[3];
             messageBA[0] = 78;
             messageBA[1] = (byte)(values[brightness]);
@@ -461,19 +462,31 @@ public class controlCommands {
             Color.colorToHSV(color, colors);
             Float deg = (float) Math.toRadians(-colors[0]);
             Float dec = (deg/((float)Math.PI*2f))*255f;
-            if(LastOn != zoneid) {
-                LightsOn(zoneid);
-            }
+
             //rotation compensation
             dec = dec + 175;
             if(dec > 255) {
                 dec = dec - 255;
             }
 
-            byte[] messageBA = new byte[3];
-            messageBA[0] = 64;
-            messageBA[1] = (byte)dec.intValue();
-            messageBA[2] = 85;
+
+            int i = 0;
+            byte[] messageBA;
+            if(LastOn != zoneid) {
+                Log.v(TAG, "switching from zone "+LastOn+" to "+zoneid);
+                lightsOn(zoneid);
+                messageBA = new byte[6];
+
+            } else {
+                messageBA = new byte[3];
+            }
+            LastOn = zoneid;
+
+            messageBA[i] = 64; i++;
+            messageBA[i] = (byte)dec.intValue(); i++;
+            messageBA[i] = 85; i++;
+
+
             try {
                 UDPC.sendMessage(messageBA);
             } catch (IOException e) {
@@ -488,7 +501,7 @@ public class controlCommands {
     }
 
     public void toggleDiscoMode(int zoneid) {
-        LightsOn(zoneid);
+        lightsOn(zoneid);
         byte[] messageBA = new byte[3];
         messageBA[0] = 77;
         messageBA[1] = 0;

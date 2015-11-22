@@ -25,7 +25,7 @@ import net.microtrash.wisperingtree.view.RangeSeekBar;
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 import de.greenrobot.event.EventBus;
-import tv.piratemedia.lightcontroler.controlCommands;
+import tv.piratemedia.lightcontroler.LightsController;
 
 
 public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeekBarChangeListener {
@@ -46,6 +46,7 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
 
     @InjectView(R.id.enable_record_switch)
     SwitchCompat mEnableRecordSwitch;
+    private LightsController mLightsController;
 
     /**
      * Returns a new instance of this fragment for the given section
@@ -79,27 +80,34 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
         mEnableRecordSwitch.setChecked(Utils.isServiceRunning(getActivity(), RecordService.class));
 
         FragmentActivity ctx = getActivity();
-        final controlCommands c = new controlCommands(ctx, null);
-        //c.LightsOn(1);
-        //c.setColor(1, Color.argb(255, 0, 255, 0));
-        LightsAnimator la = new LightsAnimator(c, 2);
-        la.fadeToColor(Color.argb(255, 255, 255, 0));
-        LightsAnimator la2 = new LightsAnimator(c, 1);
-        la.fadeToColor(Color.argb(255, 255, 255, 0));
+        mLightsController = new LightsController(ctx, null);
+        //mLightsController.lightsOn(1);
+        //mLightsController.setColor(1, Color.argb(255, 0, 255, 0));
+        //LightsAnimator la = new LightsAnimator(mLightsController, 2);
+        //la.fadeToColor(Color.argb(255, 0, 255, 255));
+
         mEnableRecordSwitch.postDelayed(new Runnable() {
             @Override
             public void run() {
-                //c.setColor(1, Color.argb(255, 0, 0, 255));
-
+                //mLightsController.setColor(1, Color.argb(255, 0, 0, 255));
+                LightsAnimator la2 = new LightsAnimator(mLightsController, 2);
+                la2.fadeToColor(Color.argb(255, 255, 255, 0));
             }
-        }, 1000);
+        }, 3000);
     }
 
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+    }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         EventBus.getDefault().unregister(this);
+        mLightsController.destroy();
     }
 
     @Override
