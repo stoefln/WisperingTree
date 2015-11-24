@@ -1,8 +1,10 @@
 package net.microtrash.wisperingtree.fragment;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentActivity;
 import android.support.v7.widget.SwitchCompat;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,6 +18,7 @@ import net.microtrash.wisperingtree.bus.SamplingStart;
 import net.microtrash.wisperingtree.bus.SamplingStop;
 import net.microtrash.wisperingtree.service.LightControlService;
 import net.microtrash.wisperingtree.service.RecordService;
+import net.microtrash.wisperingtree.util.LightsAnimator;
 import net.microtrash.wisperingtree.util.Static;
 import net.microtrash.wisperingtree.util.Tools;
 import net.microtrash.wisperingtree.util.Utils;
@@ -24,6 +27,7 @@ import net.microtrash.wisperingtree.view.RangeSeekBar;
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 import de.greenrobot.event.EventBus;
+import tv.piratemedia.lightcontroler.LightsController;
 
 
 public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeekBarChangeListener {
@@ -44,6 +48,7 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
 
     @InjectView(R.id.enable_record_switch)
     SwitchCompat mEnableRecordSwitch;
+    private LightsController mLightsController;
 
     @InjectView(R.id.enable_light_control_switch)
     SwitchCompat mEnableLightControlSwitch;
@@ -81,6 +86,12 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
         mEnableLightControlSwitch.setChecked(Utils.isServiceRunning(getActivity(), LightControlService.class));
     }
 
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+    }
 
     @Override
     public void onDestroy() {
