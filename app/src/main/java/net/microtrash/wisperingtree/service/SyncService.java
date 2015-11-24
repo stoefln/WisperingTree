@@ -15,6 +15,7 @@ import net.microtrash.wisperingtree.bus.AdaptiveThresholdChanged;
 import net.microtrash.wisperingtree.bus.AudioLevelChanged;
 import net.microtrash.wisperingtree.bus.ClientConnectionFail;
 import net.microtrash.wisperingtree.bus.ClientConnectionSuccess;
+import net.microtrash.wisperingtree.bus.FileSendingToClient;
 import net.microtrash.wisperingtree.bus.FileSentToClient;
 import net.microtrash.wisperingtree.bus.FileSentToClientFail;
 import net.microtrash.wisperingtree.bus.ProgressStatusChange;
@@ -176,7 +177,8 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
                                 String key = file.getName() + file.lastModified();
                                 File isTransferred = mFilesSent.get(key);
                                 if (isTransferred == null) {
-                                    mBluetoothManager.sendFileToRandomClient(file);
+                                    String mReceiverMac = mBluetoothManager.sendFileToRandomClient(file);
+                                    EventBus.getDefault().post(new FileSendingToClient(mReceiverMac));
                                     mFilesCurrentlySending++;
                                     newFileSent = true;
                                     break;

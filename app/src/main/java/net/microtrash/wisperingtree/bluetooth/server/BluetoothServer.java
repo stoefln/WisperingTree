@@ -71,7 +71,7 @@ public class BluetoothServer implements Runnable {
                 if (mFilesToSend.size() > 0) {
                     File nextFile = mFilesToSend.getFirst();
                     sendFileNow(nextFile);
-                    EventBus.getDefault().post(new FileSentToClient(nextFile));
+                    EventBus.getDefault().post(new FileSentToClient(nextFile, mClientAddress));
                     mFilesToSend.removeFirst();
                 }
                 Thread.sleep(500);

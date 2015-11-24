@@ -321,17 +321,17 @@ public class BluetoothManager extends BroadcastReceiver {
      * fires a FileSentToClient event as soon as the transfer is done
      * @param file
      */
-    public boolean sendFileToRandomClient(File file) {
+    public String sendFileToRandomClient(File file) {
 
         if (mType != null && isConnected && mClientConnectors != null && mClientConnectors.size() > 0) {
             int clientSelection = (int) Math.round(Math.random() * (mClientConnectors.size() - 1));
             BluetoothServer server = mClientConnectors.get(clientSelection);
             mLogger.log("Sending file " + file.getName() + " to " + Static.getClients().get(server.getClientAddress()));
             server.sendFile(file);
-            return true;
+            return server.getClientAddress();
         } else {
             mLogger.log("Can't send file, no clients connected");
-            return false;
+            return null;
         }
     }
 

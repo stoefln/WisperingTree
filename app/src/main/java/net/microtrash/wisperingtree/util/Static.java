@@ -37,4 +37,17 @@ public class Static {
         return mClients;
     }
 
+    public static int getLightBulbIndexByMac(String mac) {
+        String name = mClients.get(mac);
+        if(name.contains("S3 Mini")){
+            return 3;
+        }
+        if(name.contains("Moto")){
+            return 2;
+        }
+        if(name.contains("HTC")){
+            return 1;
+        }
+        return 0;
+    }
 }

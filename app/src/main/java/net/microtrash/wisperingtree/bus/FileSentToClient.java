@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.Serializable;
 
 public class FileSentToClient implements Serializable {
+    private final String mReceiverMac;
     File mFile;
 
     public File getFile() {
@@ -15,7 +16,12 @@ public class FileSentToClient implements Serializable {
         mFile = file;
     }
 
-    public FileSentToClient(File file) {
+    public String getReceiverMac() {
+        return mReceiverMac;
+    }
+
+    public FileSentToClient(File file, String receiverMac) {
         mFile = file;
+        mReceiverMac = receiverMac;
     }
 }

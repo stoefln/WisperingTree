@@ -119,6 +119,23 @@ public class LightsController {
     }
 
     public void lightsOn(int zone) {
+        byte[] messageBA = getLightsOnMessageData(zone);
+        LastOn = zone;
+        try {
+            UDPC.sendMessage(messageBA);
+        } catch (IOException e) {
+            e.printStackTrace();
+            //add alert to tell user we cant send command
+        }
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        appState.setOnOff(zone, true);
+    }
+
+    private byte[] getLightsOnMessageData(int zone) {
         byte[] messageBA = new byte[3];
         switch(zone) {
             case 0:
@@ -154,19 +171,7 @@ public class LightsController {
         }
         messageBA[1] = 0;
         messageBA[2] = 85;
-        LastOn = zone;
-        try {
-            UDPC.sendMessage(messageBA);
-        } catch (IOException e) {
-            e.printStackTrace();
-            //add alert to tell user we cant send command
-        }
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-        appState.setOnOff(zone, true);
+        return messageBA;
     }
 
     public void LightsOff(int zone) {
@@ -493,10 +498,77 @@ public class LightsController {
                 e.printStackTrace();
                 //add alert to tell user we cant send command
             }
-            //appState.setColor(zoneid, color);
-            //touching = true;
-            //sleeping = true;
-            //startTimeout();
+            appState.setColor(zoneid, color);
+            touching = true;
+            sleeping = true;
+            startTimeout();
+        }
+    }
+
+    /**
+     *
+     * @param zoneid
+     * @param dec from 0 to 255 (color circle)
+     */
+    public void setColorWithCircle(int zoneid, int dec) {
+        if(!sleeping) {
+            int i = 0;
+            byte[] messageBA = new byte[3];
+            if(LastOn != zoneid) {
+                Log.v(TAG, "switching from zone " + LastOn + " to " + zoneid);
+                lightsOn(zoneid);
+
+            } else {
+
+            }
+            LastOn = zoneid;
+
+            messageBA[i] = 64; i++;
+            messageBA[i] = (byte)dec; i++;
+            messageBA[i] = 85; i++;
+
+            try {
+                UDPC.sendMessage(messageBA);
+            } catch (IOException e) {
+                e.printStackTrace();
+                //add alert to tell user we cant send command
+            }
+            touching = true;
+            sleeping = true;
+            startTimeout();
+        }
+    }
+
+    /**
+     *
+     * @param zoneId
+     * @param dec from 0 to 255 (color circle)
+     */
+    public void setColorWithCircle2(int zoneId, int dec) {
+        if(!sleeping) {
+
+            if(LastOn != zoneId) {
+                Log.v(TAG, "switching from zone " + LastOn + " to " + zoneId);
+                byte[] message2 = getLightsOnMessageData(zoneId);
+                try {
+                    UDPC.sendMessage(message2);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+            LastOn = zoneId;
+
+            byte[] messageBA = new byte[3];
+            messageBA[0] = 64;
+            messageBA[1] = (byte) dec;
+            messageBA[2] = 85;
+
+            try {
+                UDPC.sendMessage(messageBA);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
