@@ -17,7 +17,8 @@ public class Static {
 
     private static Hashtable<String, String> mClients;
 
-    public static final String SERVER_MAC = "78:F7:BE:5E:60:54";
+    //public static final String SERVER_MAC = "78:F7:BE:5E:60:54"; S4
+    public static final String SERVER_MAC = "14:F4:2A:64:84:F8";
     public static final String MONITOR_MAC = "E4:12:1D:B4:DF:C5";
 
     public static Hashtable<String, String> getClients() {
