@@ -177,12 +177,12 @@ public class RecordService extends Service {
             }
             // bsp: 10 000 - 5000 = 5000
             int diff = mMinLevel - max;
-            mMinLevel = mMinLevel - diff / 3 + 1000;
+            mMinLevel = mMinLevel - diff / 3 + 3000;
             setMaxLevelByMinLevel();
 
             mLogger.log("set adaptive threshold to " + mMinLevel + " \t" + mMaxLevel);
             EventBus.getDefault().post(new AdaptiveThresholdChanged(mMinLevel, mMaxLevel));
-            for (int i = 0; i<= 10; i++) {
+            for (int i = 0; i<= 20; i++) {
                 mMaxAmpBuffer.removeFirst();
             }
         }

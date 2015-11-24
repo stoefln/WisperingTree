@@ -14,6 +14,7 @@ import net.microtrash.wisperingtree.bus.AudioLevelChanged;
 import net.microtrash.wisperingtree.bus.AudioPeakDetectionChanged;
 import net.microtrash.wisperingtree.bus.SamplingStart;
 import net.microtrash.wisperingtree.bus.SamplingStop;
+import net.microtrash.wisperingtree.service.LightControlService;
 import net.microtrash.wisperingtree.service.RecordService;
 import net.microtrash.wisperingtree.util.Static;
 import net.microtrash.wisperingtree.util.Tools;
@@ -43,6 +44,9 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
 
     @InjectView(R.id.enable_record_switch)
     SwitchCompat mEnableRecordSwitch;
+
+    @InjectView(R.id.enable_light_control_switch)
+    SwitchCompat mEnableLightControlSwitch;
 
     /**
      * Returns a new instance of this fragment for the given section
@@ -74,6 +78,7 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
     public void onResume() {
         super.onResume();
         mEnableRecordSwitch.setChecked(Utils.isServiceRunning(getActivity(), RecordService.class));
+        mEnableLightControlSwitch.setChecked(Utils.isServiceRunning(getActivity(), LightControlService.class));
     }
 
 
@@ -116,6 +121,26 @@ public class RecordFragment extends Fragment implements RangeSeekBar.OnRangeSeek
                     @Override
                     public void run() {
                         mEnableRecordSwitch.setChecked(Utils.isServiceRunning(getActivity(), RecordService.class));
+                    }
+                }, 1000);
+            }
+        });
+
+        mEnableLightControlSwitch.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getActivity(), LightControlService.class);
+                boolean isChecked = mEnableLightControlSwitch.isChecked();
+                if (isChecked) {
+                    getActivity().startService(intent);
+                } else {
+                    getActivity().stopService(intent);
+                }
+                // check and display result
+                mEnableLightControlSwitch.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        mEnableLightControlSwitch.setChecked(Utils.isServiceRunning(getActivity(), LightControlService.class));
                     }
                 }, 1000);
             }

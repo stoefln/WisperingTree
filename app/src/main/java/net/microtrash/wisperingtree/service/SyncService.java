@@ -11,12 +11,12 @@ import android.os.IBinder;
 
 import net.microtrash.wisperingtree.bluetooth.mananger.BluetoothManager;
 import net.microtrash.wisperingtree.bluetooth.server.BluetoothServer;
+import net.microtrash.wisperingtree.bus.AdaptiveThresholdChanged;
 import net.microtrash.wisperingtree.bus.AudioLevelChanged;
 import net.microtrash.wisperingtree.bus.ClientConnectionFail;
 import net.microtrash.wisperingtree.bus.ClientConnectionSuccess;
 import net.microtrash.wisperingtree.bus.FileSentToClient;
 import net.microtrash.wisperingtree.bus.FileSentToClientFail;
-import net.microtrash.wisperingtree.bus.LogMessage;
 import net.microtrash.wisperingtree.bus.ProgressStatusChange;
 import net.microtrash.wisperingtree.bus.SamplingStart;
 import net.microtrash.wisperingtree.bus.SamplingStop;
@@ -258,8 +258,9 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
         mBluetoothManager.createClient(addressMac);
     }
 
-    public void onEvent(LogMessage message) {
-        mBluetoothManager.sendToMonitClient(message);
+
+    public void onEvent(AdaptiveThresholdChanged event) {
+        mBluetoothManager.sendToMonitClient(event);
     }
 
     public void onEvent(AudioLevelChanged object) {
