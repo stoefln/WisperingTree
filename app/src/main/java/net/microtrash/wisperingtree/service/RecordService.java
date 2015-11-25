@@ -20,15 +20,8 @@ import net.microtrash.wisperingtree.util.Tools;
 import net.microtrash.wisperingtree.util.Utils;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Hashtable;
 import java.util.LinkedList;
 
 import de.greenrobot.event.EventBus;
@@ -231,58 +224,6 @@ public class RecordService extends Service {
             }
         }
         EventBus.getDefault().post(new SamplingStop());
-    }
-
-
-    /*private void backupFile(final File newFile) {
-        final String backupDirPath = Utils.getAppRootDir() + File.separatorChar + Static.BACKUP_DIR_NAME;
-        File backupDir = new File(backupDirPath);
-        if (!backupDir.exists()) {
-            backupDir.mkdir();
-        }
-        File backupFile = new File(backupDirPath + File.separatorChar + "recording_" + System.currentTimeMillis() + ".wav");
-        try {
-            copy(newFile, backupFile);
-        } catch (Exception e) {
-            mLogger.log(e.getMessage());
-        }
-    }*/
-
-    // in order to find a bug where we have many duplicates in the backed up files, we will store some information and show error log messages in case duplicates are detected:
-    Hashtable<Long, String> mFileSizes = new Hashtable<>();
-
-    public void copy(final File src, final File dst) {
-
-
-        InputStream in = null;
-        try {
-            in = new FileInputStream(src);
-
-            OutputStream out = new FileOutputStream(dst);
-
-            // Transfer bytes from in to out
-            byte[] buf = new byte[1024];
-            int len;
-            long bytesWritten = 0;
-            while ((len = in.read(buf)) > 0) {
-                out.write(buf, 0, len);
-                bytesWritten += len;
-            }
-            if (mFileSizes.get(bytesWritten) == null) {
-                mFileSizes.put(bytesWritten, dst.getName());
-                mLogger.log("Duplicated " + bytesWritten + " bytes");
-            } else {
-                mLogger.log("POTENTIAL BUG: FILESIZE DUPLICATE! These two files have the same size of (" + bytesWritten + " bytes): " + mFileSizes.get(bytesWritten) + "  " + dst.getName());
-            }
-            in.close();
-            out.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            mLogger.log(e.getMessage());
-        } catch (IOException e) {
-            e.printStackTrace();
-            mLogger.log(e.getMessage());
-        }
     }
 
     private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
