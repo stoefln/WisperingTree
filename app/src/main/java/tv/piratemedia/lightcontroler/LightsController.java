@@ -542,7 +542,7 @@ public class LightsController {
     /**
      *
      * @param zoneId
-     * @param dec from 0 to 255 (color circle)
+     * @param dec from 0 to 255 (color circle): 0: blue, 45: torquoise, 90: green,
      */
     public void setColorWithCircle2(int zoneId, int dec) {
         if(!sleeping) {

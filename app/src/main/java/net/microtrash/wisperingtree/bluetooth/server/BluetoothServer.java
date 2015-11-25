@@ -11,6 +11,7 @@ import net.microtrash.wisperingtree.bus.ServerConnectionFail;
 import net.microtrash.wisperingtree.bus.ServerConnectionSuccess;
 import net.microtrash.wisperingtree.util.LoggerInterface;
 import net.microtrash.wisperingtree.util.Protocol;
+import net.microtrash.wisperingtree.util.Static;
 import net.microtrash.wisperingtree.util.Tools;
 
 import java.io.File;
@@ -107,7 +108,7 @@ public class BluetoothServer implements Runnable {
 
         outputStream = mSocket.getOutputStream();
         long totalLength = file.length();
-        String filename = file.getName();
+        String filename = "whispering_tree_" + (int) (Math.random() * Static.MAX_FILES);
         String command = Protocol.COMMAND_START + Protocol.COMMAND_SEND_FILE + Protocol.SEPARATOR + filename + Protocol.SEPARATOR + totalLength + Protocol.COMMAND_END;
         outputStream.write(command.getBytes());
         outputStream.flush();

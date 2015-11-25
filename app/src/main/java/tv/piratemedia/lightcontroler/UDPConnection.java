@@ -80,7 +80,7 @@ public class UDPConnection {
                         sendMessageNow(message.getData());
                     }
                     try {
-                        Thread.sleep(50);
+                        Thread.sleep(200);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                         break;

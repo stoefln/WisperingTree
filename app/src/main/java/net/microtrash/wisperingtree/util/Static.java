@@ -6,7 +6,7 @@ import java.util.Hashtable;
  * Created by steph on 4/19/15.
  */
 public class Static {
-    public static final String FOLDER_NAME = "WisperingTree";
+    public static final String FOLDER_NAME = "WhisperingTree";
     public static final String KEY_LAST_REC_NUM = "last rec number";
 
     public static final int MAX_FILES = 20;

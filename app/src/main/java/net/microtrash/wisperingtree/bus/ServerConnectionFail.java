@@ -5,9 +5,13 @@ package net.microtrash.wisperingtree.bus;
  */
 public class ServerConnectionFail {
 
-    public String mClientAdressConnectionFail;
+    public String mMac;
 
     public ServerConnectionFail(String clientAdressConnectionFail){
-        mClientAdressConnectionFail = clientAdressConnectionFail;
+        mMac = clientAdressConnectionFail;
+    }
+
+    public String getMac() {
+        return mMac;
     }
 }

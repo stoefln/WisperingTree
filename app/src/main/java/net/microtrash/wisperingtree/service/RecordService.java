@@ -26,6 +26,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Hashtable;
 import java.util.LinkedList;
 
@@ -180,7 +182,7 @@ public class RecordService extends Service {
             mMinLevel = mMinLevel - diff / 3 + 3000;
             setMaxLevelByMinLevel();
 
-            mLogger.log("set adaptive threshold to " + mMinLevel + " \t" + mMaxLevel);
+            //mLogger.log("set adaptive threshold to " + mMinLevel + " \t" + mMaxLevel);
             EventBus.getDefault().post(new AdaptiveThresholdChanged(mMinLevel, mMaxLevel));
             for (int i = 0; i<= 20; i++) {
                 mMaxAmpBuffer.removeFirst();
@@ -214,7 +216,7 @@ public class RecordService extends Service {
                         File newFile = new File(outputFile.getPath().replace(".tmp", ".wav"));
                         outputFile.renameTo(newFile);
                         mLogger.log("new File created", newFile.getName());
-                        backupFile(newFile);
+                        //backupFile(newFile);
                     }
                 }, 600);
             } catch (Exception e) {
@@ -232,7 +234,7 @@ public class RecordService extends Service {
     }
 
 
-    private void backupFile(final File newFile) {
+    /*private void backupFile(final File newFile) {
         final String backupDirPath = Utils.getAppRootDir() + File.separatorChar + Static.BACKUP_DIR_NAME;
         File backupDir = new File(backupDirPath);
         if (!backupDir.exists()) {
@@ -244,7 +246,7 @@ public class RecordService extends Service {
         } catch (Exception e) {
             mLogger.log(e.getMessage());
         }
-    }
+    }*/
 
     // in order to find a bug where we have many duplicates in the backed up files, we will store some information and show error log messages in case duplicates are detected:
     Hashtable<Long, String> mFileSizes = new Hashtable<>();
@@ -283,9 +285,10 @@ public class RecordService extends Service {
         }
     }
 
+    private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH-mm-ss");
     private String getNextFilename() {
         String dirPath = Utils.getAppRootDir();
-        String nextfilename = dirPath + "/audiorecordtest" + mRecNum % Static.MAX_FILES + ".tmp";
+        String nextfilename = dirPath + "/recording_" + df.format(new Date()) + ".tmp";
         mRecNum++;
         return nextfilename;
     }

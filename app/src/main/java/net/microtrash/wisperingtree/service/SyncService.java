@@ -305,8 +305,8 @@ public class SyncService extends Service implements BluetoothManager.OnFileRecei
     }
 
     public void onEventMainThread(ServerConnectionFail event) {
-        mBluetoothManager.onServerConnectionFailed(event.mClientAdressConnectionFail);
-        onServerConnectionFail(event.mClientAdressConnectionFail);
+        mBluetoothManager.onServerConnectionFailed(event.mMac);
+        onServerConnectionFail(event.mMac);
     }
 
     public ArrayList<BluetoothServer> getClientConnectors() {
