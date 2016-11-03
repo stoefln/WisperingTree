@@ -1,7 +1,7 @@
 # WisperingTree
 Software for a public audio installation called "Whispdom"
 
-![How "Whispdom" works](https://dl.dropboxusercontent.com/u/8343806/whispdom-sketch2-367px.jpg?dl=1)
+![How "Whispdom" works](https://dl.dropboxusercontent.com/u/8343806/whispdom-sketch2-367px.jpg)
 
 ## How it basically works
 The app consists of a client and a server implementation. One server is recording sounds by detecting peak levels in the audio stream. 
