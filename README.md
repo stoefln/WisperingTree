@@ -5,7 +5,7 @@ Software for a public audio installation called "Whispdom"
 
 ## How it basically works
 The app consists of a client and a server implementation. One server is recording sounds by detecting peak levels in the audio stream. 
-The stored files are sent through bluetooth to all clients which registered to the server.
+Each recorded audio file is sent through bluetooth to one of the clients which registered at the server.
 The clients play the audio files in a sequence.
 
 ## Licence
