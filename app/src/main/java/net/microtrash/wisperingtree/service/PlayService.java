@@ -11,6 +11,7 @@ import net.microtrash.wisperingtree.audio.SequencialSamplePlayer;
 import net.microtrash.wisperingtree.bus.SamplePlayerSpeedChangeEvent;
 import net.microtrash.wisperingtree.util.Logger;
 import net.microtrash.wisperingtree.util.LoggerInterface;
+import net.microtrash.wisperingtree.util.Tools;
 import net.microtrash.wisperingtree.util.Utils;
 
 import java.io.File;
@@ -49,13 +50,15 @@ public class PlayService extends Service {
     private void initSamples() {
         try {
             File rootDir = new File(Utils.getAppRootDir());
+            mLogger.log("scanning...");
             for (File file : rootDir.listFiles()) {
                 Sample s = new Sample(file);
-                if (!mSamplePlayer.hasFile(file)) {
+                if (!mSamplePlayer.hasFile(file) && "wav".equals(Tools.getFileExtension(file))) {
                     mSamplePlayer.addSample(s);
+                    mLogger.log("added file " + file.getName() + " to playlist");
                 }
             }
-        } catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 

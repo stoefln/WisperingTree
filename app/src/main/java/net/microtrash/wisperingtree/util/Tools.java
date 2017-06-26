@@ -6,6 +6,7 @@ import android.preference.PreferenceManager;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -101,4 +102,8 @@ public class Tools {
         return s;
     }
 
+    public static String getFileExtension(File file) {
+        String filenameArray[] = file.getName().split("\\.");
+        return filenameArray[filenameArray.length-1];
+    }
 }
