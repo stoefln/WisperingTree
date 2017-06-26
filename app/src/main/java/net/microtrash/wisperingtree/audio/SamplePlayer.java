@@ -42,4 +42,8 @@ public abstract class SamplePlayer {
         }
         return false;
     }
+
+    public ArrayList<Sample> getSamples() {
+        return mSamples;
+    }
 }

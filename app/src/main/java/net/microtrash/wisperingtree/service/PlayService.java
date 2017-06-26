@@ -50,13 +50,17 @@ public class PlayService extends Service {
     private void initSamples() {
         try {
             File rootDir = new File(Utils.getAppRootDir());
-            mLogger.log("scanning...");
+            boolean added = false;
             for (File file : rootDir.listFiles()) {
                 Sample s = new Sample(file);
                 if (!mSamplePlayer.hasFile(file) && "wav".equals(Tools.getFileExtension(file))) {
                     mSamplePlayer.addSample(s);
                     mLogger.log("added file " + file.getName() + " to playlist");
+                    added = true;
                 }
+            }
+            if(added) {
+                mLogger.log(mSamplePlayer.getSamples().size() + " files total");
             }
         } catch (Exception e) {
             e.printStackTrace();
